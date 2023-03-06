@@ -23,12 +23,26 @@ class Sprite:
         else:
             frame_list.append(pygame.transform.smoothscale(loaded_image, (loaded_image.get_width() * width_multiplier, loaded_image.get_height() * height_multiplier)))
     
+    @staticmethod
+    def add_sprite(name, image, size = None):
+        loaded_image = pygame.image.load(image)
+        width_multiplier, height_multiplier = render.get_size_multiplier()
+        if size:
+            setattr(name, "image", pygame.transform.smoothscale(loaded_image, (size[0] * width_multiplier, size[1] * height_multiplier)))
+        else:
+            setattr(name, "image", pygame.transform.smoothscale(loaded_image, (loaded_image.get_width() * width_multiplier, loaded_image.get_height() * height_multiplier)))
+    
     class Player:
         frames = []
     
     class Guns:
         class Shotgun:
             frames = []
+    
+    class UI:
+        class Menu:
+            class Background:
+                image = None
             
         
 # ----- Variables -----
@@ -41,6 +55,27 @@ def exit():
     sys.exit()
 
 # ----- Class -----
+
+class MainMenu:
+    @classmethod
+    def __init__(cls):
+        cls.enabled = True
+    
+    @classmethod
+    def toggle(cls):
+        cls.enabled = not cls.enabled
+    
+    @classmethod
+    def enable(cls):
+        cls.enabled = True
+    
+    @classmethod
+    def disable(cls):
+        cls.enabled = False
+    
+    @classmethod
+    def display(cls):
+        render.blit(Sprite.UI.Menu.Background.image, (0, 0))
 
 class Render:
     info = pygame.display.Info()
@@ -86,9 +121,11 @@ class Render:
 render = Render((GAME_WIDTH, GAME_WIDTH))
 
 Sprite.add_sprite_frame(Sprite.Player.frames, "images/player/f0.png")
+Sprite.add_sprite(Sprite.UI.Menu.Background, "images/UI/menu/Background.png", (GAME_WIDTH, GAME_HEIGHT))
 
 running = True
 while running:
+    MainMenu.display()
+    
     render.update()
-    render.blit(Sprite.Player.frames[0], (0, 0))
     render.display()
