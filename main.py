@@ -14,8 +14,22 @@ GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
 
 class Sprite:
+    @staticmethod
+    def add_sprite_frame(frame_list, image, size = None):
+        loaded_image = pygame.image.load(image)
+        width_multiplier, height_multiplier = render.get_size_multiplier()
+        if size:
+            frame_list.append(pygame.transform.smoothscale(loaded_image, (size[0] * width_multiplier, size[1] * height_multiplier)))
+        else:
+            frame_list.append(pygame.transform.smoothscale(loaded_image, (loaded_image.get_width() * width_multiplier, loaded_image.get_height() * height_multiplier)))
+    
     class Player:
-        f0 = pygame.image.load("images/player/f0.png")
+        frames = []
+    
+    class Guns:
+        class Shotgun:
+            frames = []
+            
         
 # ----- Variables -----
 clock = pygame.time.Clock()
@@ -25,7 +39,7 @@ def exit():
     # Exit server here
     pygame.quit()
     sys.exit()
-    
+
 # ----- Class -----
 
 class Render:
@@ -44,7 +58,7 @@ class Render:
         
         self.WIDTH_MULTIPLIER = self.DISPLAY_WIDTH/GAME_WIDTH
         self.HEIGHT_MULTIPLIER = self.DISPLAY_HEIGHT/GAME_HEIGHT
-
+    
     def blit(self, *image):
         self.queued_images.append(image)
     
@@ -61,15 +75,20 @@ class Render:
             self.screen.blit(*image)
         pygame.display.update()
         self.queued_images = []
-        
+    
     def tick(self):
         clock.tick(FPS)
+            
+    def get_size_multiplier(self):
+        return (self.WIDTH_MULTIPLIER, self.HEIGHT_MULTIPLIER)
             
             
 render = Render((GAME_WIDTH, GAME_WIDTH))
 
+Sprite.add_sprite_frame(Sprite.Player.frames, "images/player/f0.png")
+
 running = True
 while running:
     render.update()
-    render.blit(Sprite.Player.f0, (0, 0))
+    render.blit(Sprite.Player.frames[0], (0, 0))
     render.display()
