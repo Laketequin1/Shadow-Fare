@@ -13,9 +13,19 @@ FPS = 120
 GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
 
+class Font:
+    menu = pygame.font.SysFont(None, 30)
+
 class Sprite:
     @staticmethod
     def add_sprite_frame(frame_list, image, size = None):
+        """Adds a sprite frame to the given list.
+
+        Args:
+            frame_list (list): List of sprite frames.
+            image (str): Path to image file.
+            size (tuple, optional): Desired size of the image. Defaults to None.
+        """
         loaded_image = pygame.image.load(image)
         width_multiplier, height_multiplier = render.get_size_multiplier()
         if size:
@@ -25,6 +35,13 @@ class Sprite:
     
     @staticmethod
     def add_sprite(name, image, size = None):
+        """Adds a sprite to the class.
+
+        Args:
+            name (str): Name of the sprite.
+            image (str): Path to image file.
+            size (tuple, optional): Desired size of the image. Defaults to None.
+        """
         loaded_image = pygame.image.load(image)
         width_multiplier, height_multiplier = render.get_size_multiplier()
         if size:
@@ -50,14 +67,27 @@ clock = pygame.time.Clock()
 
 # ----- Function ------
 def exit():
-    # Exit server here
+    """Exits the server and game."""
     pygame.quit()
     sys.exit()
 
 # ----- Class -----
 
 class Button:
-    def __init__(self, text, pos, size, color, callback):
+    """Represents a button on the screen."""
+
+    def __init__(self, text, pos, size, color, font, callback):
+        """Initialize the button.
+
+        Args:
+            text (str): Text to display on the button.
+            pos (tuple): Position of the button.
+            size (tuple): Size of the button.
+            color (tuple): Color of the button.
+            font (pygame.font.Font): Used font of the button.
+            callback (function): Function to execute when the button is clicked.
+        """
+        # Assigning button attributes
         self.text = text
         self.render_pos = render.get_render_pos(pos)
         self.game_pos = pos
@@ -65,38 +95,61 @@ class Button:
         self.color = color
         self.callback = callback
         
+        # Create a surface for the button
         self.button_surface = pygame.Surface(self.size)
         self.button_surface.fill(self.color)
         
-        font = pygame.font.SysFont(None, 24)
+        # Render the button's text onto the surface
         text = font.render(self.text, True, (255, 255, 255))
         text_rect = text.get_rect(center=(self.size[0]/2, self.size[1]/2))
-        
         self.button_surface.blit(text, text_rect)
         
+        # Scale the button surface to match the screen resolution
         width_multiplier, height_multiplier = render.get_size_multiplier()
         self.button_surface = pygame.transform.smoothscale(self.button_surface, (self.button_surface.get_width() * width_multiplier, self.button_surface.get_height() * height_multiplier))
     
     def display(self):
+        """Displays the button on the screen."""
         render.blit(self.button_surface, self.render_pos)
 
     def update(self, mouse_pos, mouse_down):
+        """
+        Updates the button state based on the mouse input.
+
+        Args:
+            mouse_pos (tuple): Current mouse position.
+            mouse_down (tuple): Current mouse button states.
+        """
+        # Check if the mouse is hovering over the button and the left mouse button is down
         if pygame.Rect(*self.render_pos, *self.button_surface.get_size()).collidepoint(mouse_pos) and mouse_down[0]:
-            self.callback(mouse_pos)
+            self.callback()
+
 
 class Scene:
     @classmethod
-    def update(cls, mouse_pos, mouse_down):
-        pass
+    def add_button(cls, button):
+        cls.buttons.append(button)
+
+
+class World(Scene):
+    buttons = []
 
     @classmethod
-    def display(cls):
-        pass
+    def update(cls, mouse_pos, mouse_down):
+        for button in cls.buttons:
+            button.update(mouse_pos, mouse_down)
+        
+        cls.display()
+
+    @classmethod
+    def display(cls):        
+        for button in cls.buttons:
+            button.display()
 
 
-class MainMenu:
-    enabled = True
+class MainMenu(Scene):
     buttons = []
+    enabled = True
     
     @classmethod
     def toggle(cls):
@@ -109,10 +162,6 @@ class MainMenu:
     @classmethod
     def disable(cls):
         cls.enabled = False
-    
-    @classmethod
-    def add_button(cls, button):
-        cls.buttons.append(button)
     
     @classmethod
     def update(cls, mouse_pos, mouse_down):        
@@ -198,12 +247,11 @@ render = Render((GAME_WIDTH, GAME_WIDTH))
 Sprite.add_sprite_frame(Sprite.Player.frames, "images/player/f0.png")
 Sprite.add_sprite(Sprite.UI.Menu.Background, "images/UI/menu/Background.png", (GAME_WIDTH, GAME_HEIGHT))
 
-def test(x):
-    print(f"Button clicked: {x}")
-    button.button_surface.fill((0, random.randint(1, 255), 0))
-
-button = Button("Click me!", (GAME_WIDTH / 2 - 100, 150), (200, 80), (255, 0, 0), test)
+button = Button("Play", (GAME_WIDTH / 2 - 100, 150), (200, 80), (255, 0, 0), Font.menu, MainMenu.toggle)
 MainMenu.add_button(button)
+
+button = Button("ll", (20, 20), (60, 60), (255, 0, 0), Font.menu, MainMenu.toggle)
+World.add_button(button)
 
 running = True
 while running:
@@ -212,7 +260,7 @@ while running:
     if MainMenu.enabled:
         MainMenu.update(mouse_pos, mouse_down)
     else:
-        Scene.update(mouse_pos, mouse_down)
+        World.update(mouse_pos, mouse_down)
     
     render.update()
     render.display()
