@@ -84,6 +84,15 @@ class Button:
         if pygame.Rect(*self.render_pos, *self.button_surface.get_size()).collidepoint(mouse_pos) and mouse_down[0]:
             self.callback(mouse_pos)
 
+class Scene:
+    @classmethod
+    def update(cls, mouse_pos, mouse_down):
+        pass
+
+    @classmethod
+    def display(cls):
+        pass
+
 
 class MainMenu:
     enabled = True
@@ -106,15 +115,12 @@ class MainMenu:
         cls.buttons.append(button)
     
     @classmethod
-    def update(cls):
-        if cls.enabled:
-            mouse_pos = pygame.mouse.get_pos()
-            mouse_down = pygame.mouse.get_pressed()
-            
-            for button in cls.buttons:
-                button.update(mouse_pos, mouse_down)
-            
-            cls.display()
+    def update(cls, mouse_pos, mouse_down):        
+        for button in cls.buttons:
+            button.update(mouse_pos, mouse_down)
+        
+        cls.display()
+
                
     @classmethod
     def display(cls):
@@ -163,6 +169,9 @@ class Render:
         pygame.display.update()
         self.queued_images = []
     
+    def get_inputs(self):
+        return pygame.mouse.get_pos(), pygame.mouse.get_pressed()
+
     def tick(self):
         clock.tick(FPS)
             
@@ -198,7 +207,12 @@ MainMenu.add_button(button)
 
 running = True
 while running:
-    MainMenu.update()
+    mouse_pos, mouse_down = render.get_inputs()
+
+    if MainMenu.enabled:
+        MainMenu.update(mouse_pos, mouse_down)
+    else:
+        Scene.update(mouse_pos, mouse_down)
     
     render.update()
     render.display()
