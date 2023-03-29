@@ -128,6 +128,12 @@ class Button:
 class Scene:
     @classmethod
     def add_button(cls, button):
+        """
+        A class method which adds a button to the list of buttons in the Scene class.
+
+        Args:
+            button (Button): A Button instance to be added.
+        """
         cls.buttons.append(button)
 
 
@@ -136,13 +142,23 @@ class World(Scene):
 
     @classmethod
     def update(cls, mouse_pos, mouse_down):
+        """
+        A class method that updates all buttons in the World and then displays them.
+
+        Args:
+            mouse_pos (tuple): Current position of the mouse.
+            mouse_down (tuple): Current state of the mouse buttons.
+        """
         for button in cls.buttons:
             button.update(mouse_pos, mouse_down)
         
         cls.display()
 
     @classmethod
-    def display(cls):        
+    def display(cls): 
+        """
+        A class method that displays all buttons in the World.
+        """
         for button in cls.buttons:
             button.display()
 
@@ -153,26 +169,35 @@ class MainMenu(Scene):
     
     @classmethod
     def toggle(cls):
+        """Toggles the enabled status of the MainMenu."""
         cls.enabled = not cls.enabled
     
     @classmethod
     def enable(cls):
+        """Enables the MainMenu."""
         cls.enabled = True
     
     @classmethod
     def disable(cls):
+        """Disables the MainMenu."""
         cls.enabled = False
     
     @classmethod
     def update(cls, mouse_pos, mouse_down):        
+        """Updates the MainMenu.
+
+        Args:
+            mouse_pos (tuple): Current mouse position.
+            mouse_down (tuple): Indicates if the mouse button is being pressed.
+        """
         for button in cls.buttons:
             button.update(mouse_pos, mouse_down)
         
         cls.display()
-
                
     @classmethod
     def display(cls):
+        """Displays the MainMenu."""
         render.blit(Sprite.UI.Menu.Background.image, (0, 0))
         
         for button in cls.buttons:
@@ -189,6 +214,12 @@ class Render:
     queued_images = []
     
     def __init__(self, game_resolution: tuple[int, int]):
+        """
+        Initializes a Render object with the game resolution and the display resolution.
+
+        Args:
+            game_resolution (tuple): Game resolution.
+        """
         self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME)
         pygame.display.set_caption("Shadow Fare")
         self.game_resolution = game_resolution
@@ -197,12 +228,21 @@ class Render:
         self.HEIGHT_MULTIPLIER = self.DISPLAY_HEIGHT/GAME_HEIGHT
     
     def blit(self, *image):
+        """
+        Adds an image to the queue of images to be blitted later.
+
+        Args:
+            *image (tuple): Tuple containing the surface to be blitted and its position.
+        """
         self.queued_images.append(image)
     
     def scale_image(self, surface):
         pass
     
     def update(self):
+        """
+        Handles events and updates the display.
+        """
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit()
@@ -210,6 +250,9 @@ class Render:
                 exit()
     
     def display(self):
+        """
+        Blits all queued images and updates the display.
+        """
         self.screen.fill(self.BACKGROUND_COLOR)
         
         for i, image in enumerate(self.queued_images):
@@ -219,15 +262,36 @@ class Render:
         self.queued_images = []
     
     def get_inputs(self):
+        """
+        Gets the mouse position and mouse button states.
+
+        Returns:
+            tuple: A tuple containing the mouse position and the mouse button states.
+        """
         return pygame.mouse.get_pos(), pygame.mouse.get_pressed()
 
     def tick(self):
+        """
+        Waits for the appropriate amount of time to meet the target FPS.
+        """
         clock.tick(FPS)
             
     def get_size_multiplier(self):
+        """
+        Returns the width and height multipliers for scaling game elements.
+        """
         return (self.WIDTH_MULTIPLIER, self.HEIGHT_MULTIPLIER)
     
     def get_game_pos(self, pos):
+        """
+        Converts a screen position to a game position.
+
+        Args:
+            pos (tuple): The screen position.
+
+        Returns:
+            tuple: The game position.
+        """
         pos = list(pos)
         pos[0] /= self.WIDTH_MULTIPLIER
         pos[1] /= self.HEIGHT_MULTIPLIER
@@ -235,6 +299,15 @@ class Render:
         return pos
     
     def get_render_pos(self, pos):
+        """
+        Converts a game position to a screen position.
+
+        Args:
+            pos (tuple): The game position.
+
+        Returns:
+            tuple: The screen position.
+        """
         pos = list(pos)
         pos[0] *= self.WIDTH_MULTIPLIER
         pos[1] *= self.HEIGHT_MULTIPLIER
