@@ -14,7 +14,7 @@ GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
 
 class Font:
-    menu = pygame.font.SysFont(None, 30)
+    menu = pygame.font.SysFont(None, 40)
 
 class Sprite:
     @staticmethod
@@ -74,8 +74,6 @@ def exit():
 # ----- Class -----
 
 class Button:
-    """Represents a button on the screen."""
-
     def __init__(self, text, pos, size, color, font, callback):
         """Initialize the button.
 
@@ -107,10 +105,6 @@ class Button:
         # Scale the button surface to match the screen resolution
         width_multiplier, height_multiplier = render.get_size_multiplier()
         self.button_surface = pygame.transform.smoothscale(self.button_surface, (self.button_surface.get_width() * width_multiplier, self.button_surface.get_height() * height_multiplier))
-    
-    def display(self):
-        """Displays the button on the screen."""
-        render.blit(self.button_surface, self.render_pos)
 
     def update(self, mouse_pos, mouse_down):
         """
@@ -123,6 +117,28 @@ class Button:
         # Check if the mouse is hovering over the button and the left mouse button is down
         if pygame.Rect(*self.render_pos, *self.button_surface.get_size()).collidepoint(mouse_pos) and mouse_down[0]:
             self.callback()
+
+    def display(self):
+        """Displays the button on the screen."""
+        render.blit(self.button_surface, self.render_pos)
+
+
+class Player:
+    @classmethod
+    def update(cls, mouse_pos, mouse_down):
+        """
+        Updates the button state based on the mouse input.
+
+        Args:
+            mouse_pos (tuple): Current mouse position.
+            mouse_down (tuple): Current mouse button states.
+        """
+        cls.display()
+
+    @classmethod
+    def display(cls):
+        """Displays the button on the screen."""
+        render.blit(Sprite.Player.frames[0], (200, 50))
 
 
 class Scene:
@@ -143,12 +159,14 @@ class World(Scene):
     @classmethod
     def update(cls, mouse_pos, mouse_down):
         """
-        A class method that updates all buttons in the World and then displays them.
+        A class method that updates all events in the World and then displays them.
 
         Args:
             mouse_pos (tuple): Current position of the mouse.
             mouse_down (tuple): Current state of the mouse buttons.
         """
+        Player.update(mouse_pos, mouse_down)
+
         for button in cls.buttons:
             button.update(mouse_pos, mouse_down)
         
@@ -320,7 +338,9 @@ render = Render((GAME_WIDTH, GAME_WIDTH))
 Sprite.add_sprite_frame(Sprite.Player.frames, "images/player/f0.png")
 Sprite.add_sprite(Sprite.UI.Menu.Background, "images/UI/menu/Background.png", (GAME_WIDTH, GAME_HEIGHT))
 
-button = Button("Play", (GAME_WIDTH / 2 - 100, 150), (200, 80), (255, 0, 0), Font.menu, MainMenu.toggle)
+button = Button("Play", (GAME_WIDTH / 2 - 200, 550), (400, 80), (255, 0, 0), Font.menu, MainMenu.toggle)
+MainMenu.add_button(button)
+button = Button("Exit", (GAME_WIDTH / 2 - 200, 650), (400, 80), (255, 0, 0), Font.menu, exit)
 MainMenu.add_button(button)
 
 button = Button("ll", (20, 20), (60, 60), (255, 0, 0), Font.menu, MainMenu.toggle)
