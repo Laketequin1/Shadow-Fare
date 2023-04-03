@@ -1,5 +1,5 @@
 # ----- Setup ------
-import pygame, os, sys, random
+import pygame, os, sys, random, math
 pygame.init()
 
 # Imports lots of colors as RGB
@@ -72,6 +72,102 @@ def exit():
     sys.exit()
 
 # ----- Class -----
+class Scene:
+    @classmethod
+    def add_button(cls, button):
+        """
+        A class method which adds a button to the list of buttons in the Scene class.
+
+        Args:
+            button (Button): A Button instance to be added.
+        """
+        cls.buttons.append(button)
+
+
+class Player:
+    pos = [200, 50]
+    base_speed = 1.5
+
+    @classmethod
+    def update(cls, mouse_pos, mouse_down, keys_pressed: pygame.key.ScancodeWrapper):
+        """
+        Updates the player and handles movement.
+
+        Args:
+            mouse_pos (tuple): Current mouse position.
+            mouse_down (tuple): Current mouse button states.
+            keys_pressed (pygame.key.ScancodeWrapper): Current keyboard button states.
+        """
+        # Calculate the player's movement vector
+        move_vector = [0, 0]
+        if keys_pressed[pygame.K_w]:
+            move_vector[1] -= cls.base_speed
+        if keys_pressed[pygame.K_a]:
+            move_vector[0] -= cls.base_speed
+        if keys_pressed[pygame.K_s]:
+            move_vector[1] += cls.base_speed
+        if keys_pressed[pygame.K_d]:
+            move_vector[0] += cls.base_speed
+
+        # Normalize the movement vector if it is diagonal
+        if move_vector[0] != 0 and move_vector[1] != 0:
+            move_vector = [x / math.sqrt(2) for x in move_vector]
+
+        # Update the player's position
+        cls.pos = (cls.pos[0] + move_vector[0], cls.pos[1] + move_vector[1])
+
+        cls.display()
+
+    @classmethod
+    def display(cls):
+        """Displays the player on the screen."""
+        render.blit(Sprite.Player.frames[0], cls.pos)
+
+
+class Object:
+    def __init__(self, game_pos, image):
+        self.game_pos = game_pos
+        self.image = image
+
+    def update(self):
+        """
+        Updates and displays the object.
+        """
+        self.display()
+
+    @classmethod
+    def display(self):
+        """Displays the object on the screen."""
+        render.blit(Sprite.Player.frames[0], self.pos)
+
+
+class World(Scene):
+    buttons = []
+
+    @classmethod
+    def update(cls, mouse_pos, mouse_down, keys_pressed):
+        """
+        A class method that updates all events in the World and then displays them.
+
+        Args:
+            mouse_pos (tuple): Current position of the mouse.
+            mouse_down (tuple): Current state of the mouse buttons.
+        """
+        Player.update(mouse_pos, mouse_down, keys_pressed)
+
+        for button in cls.buttons:
+            button.update(mouse_pos, mouse_down)
+        
+        cls.display()
+
+    @classmethod
+    def display(cls): 
+        """
+        A class method that displays all buttons in the World.
+        """
+        for button in cls.buttons:
+            button.display()
+
 
 class Button:
     def __init__(self, text, pos, size, color, font, callback):
@@ -121,64 +217,6 @@ class Button:
     def display(self):
         """Displays the button on the screen."""
         render.blit(self.button_surface, self.render_pos)
-
-
-class Player:
-    @classmethod
-    def update(cls, mouse_pos, mouse_down):
-        """
-        Updates the button state based on the mouse input.
-
-        Args:
-            mouse_pos (tuple): Current mouse position.
-            mouse_down (tuple): Current mouse button states.
-        """
-        cls.display()
-
-    @classmethod
-    def display(cls):
-        """Displays the button on the screen."""
-        render.blit(Sprite.Player.frames[0], (200, 50))
-
-
-class Scene:
-    @classmethod
-    def add_button(cls, button):
-        """
-        A class method which adds a button to the list of buttons in the Scene class.
-
-        Args:
-            button (Button): A Button instance to be added.
-        """
-        cls.buttons.append(button)
-
-
-class World(Scene):
-    buttons = []
-
-    @classmethod
-    def update(cls, mouse_pos, mouse_down):
-        """
-        A class method that updates all events in the World and then displays them.
-
-        Args:
-            mouse_pos (tuple): Current position of the mouse.
-            mouse_down (tuple): Current state of the mouse buttons.
-        """
-        Player.update(mouse_pos, mouse_down)
-
-        for button in cls.buttons:
-            button.update(mouse_pos, mouse_down)
-        
-        cls.display()
-
-    @classmethod
-    def display(cls): 
-        """
-        A class method that displays all buttons in the World.
-        """
-        for button in cls.buttons:
-            button.display()
 
 
 class MainMenu(Scene):
@@ -279,7 +317,7 @@ class Render:
         pygame.display.update()
         self.queued_images = []
     
-    def get_inputs(self):
+    def get_mouse(self):
         """
         Gets the mouse position and mouse button states.
 
@@ -287,6 +325,15 @@ class Render:
             tuple: A tuple containing the mouse position and the mouse button states.
         """
         return pygame.mouse.get_pos(), pygame.mouse.get_pressed()
+    
+    def get_keys(self):
+        """
+        Gets the keyboard button states.
+
+        Returns:
+            pygame.key.ScancodeWrapper: Contains the keyboard button states.
+        """
+        return pygame.key.get_pressed()
 
     def tick(self):
         """
@@ -332,7 +379,7 @@ class Render:
         
         return pos
         
-            
+
 render = Render((GAME_WIDTH, GAME_WIDTH))
 
 Sprite.add_sprite_frame(Sprite.Player.frames, "images/player/f0.png")
@@ -348,12 +395,13 @@ World.add_button(button)
 
 running = True
 while running:
-    mouse_pos, mouse_down = render.get_inputs()
+    mouse_pos, mouse_down = render.get_mouse()
+    keys_pressed = render.get_keys()
 
     if MainMenu.enabled:
         MainMenu.update(mouse_pos, mouse_down)
     else:
-        World.update(mouse_pos, mouse_down)
+        World.update(mouse_pos, mouse_down, keys_pressed)
     
     render.update()
     render.display()
