@@ -13,8 +13,11 @@ FPS = 120
 GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
 
+settings = {"ShowStats":True}
+
 class Font:
-    menu = pygame.font.SysFont(None, 40)
+    menu = pygame.font.SysFont(None, 50)
+    symbol = pygame.font.SysFont(None, 70)
 
 class Sprite:
     @staticmethod
@@ -167,7 +170,7 @@ class World(Scene):
         """
         for button in cls.buttons:
             button.display()
-
+            
 
 class Button:
     def __init__(self, text, pos, size, color, font, callback):
@@ -199,8 +202,7 @@ class Button:
         self.button_surface.blit(text, text_rect)
         
         # Scale the button surface to match the screen resolution
-        width_multiplier, height_multiplier = render.get_size_multiplier()
-        self.button_surface = pygame.transform.smoothscale(self.button_surface, (self.button_surface.get_width() * width_multiplier, self.button_surface.get_height() * height_multiplier))
+        self.button_surface = render.scale_image(self.button_surface)
 
     def update(self, mouse_pos, mouse_down):
         """
@@ -293,7 +295,20 @@ class Render:
         self.queued_images.append(image)
     
     def scale_image(self, surface):
-        pass
+        """
+        Converts a pygame surface to relative screen size.
+        
+        Args:
+            TODO
+            
+        Returns:
+            TODO
+        """
+        width_multiplier, height_multiplier = render.get_size_multiplier()
+        
+        surface_resize = pygame.transform.smoothscale(surface, (surface.get_width() * width_multiplier, surface.get_height() * height_multiplier))
+        
+        return surface_resize
     
     def update(self):
         """
@@ -305,11 +320,27 @@ class Render:
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 exit()
     
+    def show_stats(self):
+        """
+        Blits game statistics like FPS to the screen. Useful for debugging.
+        """
+        fps = clock.get_fps()
+        fps_text = Font.menu.render(f"FPS: {fps:.1f}", True, (255, 255, 255))
+        fps_text = render.scale_image(fps_text)
+        fps_rect = fps_text.get_rect()
+        fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
+        
+        # Blit the fps text onto the screen
+        self.blit(fps_text, fps_rect)
+    
     def display(self):
         """
         Blits all queued images and updates the display.
         """
         self.screen.fill(self.BACKGROUND_COLOR)
+        
+        if settings["ShowStats"]:
+            self.show_stats()
         
         for i, image in enumerate(self.queued_images):
             self.screen.blit(*image)
@@ -390,7 +421,7 @@ MainMenu.add_button(button)
 button = Button("Exit", (GAME_WIDTH / 2 - 200, 650), (400, 80), (255, 0, 0), Font.menu, exit)
 MainMenu.add_button(button)
 
-button = Button("ll", (20, 20), (60, 60), (255, 0, 0), Font.menu, MainMenu.toggle)
+button = Button("ll", (10, 10), (100, 100), (255, 0, 0), Font.symbol, MainMenu.toggle)
 World.add_button(button)
 
 running = True
@@ -404,4 +435,5 @@ while running:
         World.update(mouse_pos, mouse_down, keys_pressed)
     
     render.update()
+    render.tick()
     render.display()
