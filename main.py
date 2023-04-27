@@ -16,8 +16,10 @@ GAME_HEIGHT = 1080
 settings = {"ShowStats":True}
 
 class Font:
-    menu = pygame.font.SysFont(None, 50)
-    symbol = pygame.font.SysFont(None, 70)
+    menu = pygame.font.SysFont(None, 100)
+    symbol = pygame.font.SysFont(None, 80)
+    debug = pygame.font.Font("fonts/RobotoMono.ttf", 60)
+
 
 class Sprite:
     @staticmethod
@@ -325,7 +327,7 @@ class Render:
         Blits game statistics like FPS to the screen. Useful for debugging.
         """
         fps = clock.get_fps()
-        fps_text = Font.menu.render(f"FPS: {fps:.1f}", True, (255, 255, 255))
+        fps_text = Font.debug.render(f"FPS: {fps:.1f}", True, (255, 255, 255))
         fps_text = render.scale_image(fps_text)
         fps_rect = fps_text.get_rect()
         fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
@@ -416,9 +418,9 @@ render = Render((GAME_WIDTH, GAME_WIDTH))
 Sprite.add_sprite_frame(Sprite.Player.frames, "images/player/f0.png")
 Sprite.add_sprite(Sprite.UI.Menu.Background, "images/UI/menu/Background.png", (GAME_WIDTH, GAME_HEIGHT))
 
-button = Button("Play", (GAME_WIDTH / 2 - 200, 550), (400, 80), (255, 0, 0), Font.menu, MainMenu.toggle)
+button = Button("Play", (GAME_WIDTH / 2 - 400, 450), (800, 180), (255, 0, 0), Font.menu, MainMenu.toggle)
 MainMenu.add_button(button)
-button = Button("Exit", (GAME_WIDTH / 2 - 200, 650), (400, 80), (255, 0, 0), Font.menu, exit)
+button = Button("Exit", (GAME_WIDTH / 2 - 400, 650), (800, 180), (255, 0, 0), Font.menu, exit)
 MainMenu.add_button(button)
 
 button = Button("ll", (10, 10), (100, 100), (255, 0, 0), Font.symbol, MainMenu.toggle)
