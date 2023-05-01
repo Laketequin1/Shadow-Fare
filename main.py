@@ -21,41 +21,36 @@ class Font:
     debug = pygame.font.Font("fonts/RobotoMono.ttf", 60)
 
 
-class Sprite:
-    @staticmethod
-    def add_sprite_frame(frame_list, image, size = None):
-        """Adds a sprite frame to the given list.
+def load_image(path, size = None):
+        """Returns the loaded image.
 
         Args:
-            frame_list (list): List of sprite frames.
-            image (str): Path to image file.
-            size (tuple, optional): Desired size of the image. Defaults to None.
+            paths (str): path to a single image.
+            
+        Returns:
+            pygame.Surface: A pygame surface of the image.
         """
-        loaded_image = pygame.image.load(image)
         width_multiplier, height_multiplier = render.get_size_multiplier()
+        image = pygame.image.load(path)
+        
         if size:
-            frame_list.append(pygame.transform.smoothscale(loaded_image, (size[0] * width_multiplier, size[1] * height_multiplier)))
-        else:
-            frame_list.append(pygame.transform.smoothscale(loaded_image, (loaded_image.get_width() * width_multiplier, loaded_image.get_height() * height_multiplier)))
+            return pygame.transform.smoothscale(image, (size[0] * width_multiplier, size[1] * height_multiplier))
+        return pygame.transform.smoothscale(image, (image.get_width() * width_multiplier, image.get_height() * height_multiplier))
     
-    @staticmethod
-    def add_sprite(name, image, size = None):
-        """Adds a sprite to the class.
+def load_images(cls, paths, size = None):
+        """Returns the loaded images.
 
         Args:
-            name (str): Name of the sprite.
-            image (str): Path to image file.
-            size (tuple, optional): Desired size of the image. Defaults to None.
-        """
-        loaded_image = pygame.image.load(image)
-        width_multiplier, height_multiplier = render.get_size_multiplier()
-        if size:
-            setattr(name, "image", pygame.transform.smoothscale(loaded_image, (size[0] * width_multiplier, size[1] * height_multiplier)))
-        else:
-            setattr(name, "image", pygame.transform.smoothscale(loaded_image, (loaded_image.get_width() * width_multiplier, loaded_image.get_height() * height_multiplier)))
-    
+            paths (list): List of paths to sprite frames.
+            
+        Returns:
+            list: A list of loaded images.
+        """        
+        return [cls.load_image(path, size) for path in paths]
+
+class Sprite:    
     class Player:
-        frames = []
+        frames = [load_image("images/player/f0.png")]
     
     class Guns:
         class Shotgun:
@@ -65,6 +60,11 @@ class Sprite:
         class Menu:
             class Background:
                 image = None
+    
+    class Scenery:
+        class Foilage:
+            class Tree:
+                frames = []
             
         
 # ----- Variables -----
@@ -78,6 +78,8 @@ def exit():
 
 # ----- Class -----
 class Scene:
+    buttons = []
+    objects = []
     @classmethod
     def add_button(cls, button):
         """
@@ -87,6 +89,26 @@ class Scene:
             button (Button): A Button instance to be added.
         """
         cls.buttons.append(button)
+    
+    @classmethod
+    def add_object(cls, object):
+        """
+        A class method which adds an object to the list of objects in the Scene class.
+        
+        Args:
+            object (Object): A Object instance to be added.
+        """
+        
+    @classmethod
+    def update_buttons(cls, mouse_pos, mouse_down):        
+        """Updates the Buttons.
+
+        Args:
+            mouse_pos (tuple): Current mouse position.
+            mouse_down (tuple): Indicates if the mouse button is being pressed.
+        """
+        for button in cls.buttons:
+            button.update(mouse_pos, mouse_down)
 
 
 class Player:
@@ -250,11 +272,10 @@ class MainMenu(Scene):
             mouse_pos (tuple): Current mouse position.
             mouse_down (tuple): Indicates if the mouse button is being pressed.
         """
-        for button in cls.buttons:
-            button.update(mouse_pos, mouse_down)
+        cls.update_buttons(mouse_pos, mouse_down)
         
         cls.display()
-               
+        
     @classmethod
     def display(cls):
         """Displays the MainMenu."""
@@ -298,13 +319,13 @@ class Render:
     
     def scale_image(self, surface):
         """
-        Converts a pygame surface to relative screen size.
-        
+        Scales a Pygame surface to a size relative to the screen.
+
         Args:
-            TODO
-            
+            surface (pygame.Surface): The surface to be scaled.
+
         Returns:
-            TODO
+            pygame.Surface: The scaled surface.
         """
         width_multiplier, height_multiplier = render.get_size_multiplier()
         
@@ -332,7 +353,6 @@ class Render:
         fps_rect = fps_text.get_rect()
         fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
         
-        # Blit the fps text onto the screen
         self.blit(fps_text, fps_rect)
     
     def display(self):
@@ -425,6 +445,8 @@ MainMenu.add_button(button)
 
 button = Button("ll", (10, 10), (100, 100), (255, 0, 0), Font.symbol, MainMenu.toggle)
 World.add_button(button)
+
+object = Object((0, 0), Sprite.Player.frames)
 
 running = True
 while running:
