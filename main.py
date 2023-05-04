@@ -5,6 +5,7 @@ pygame.init()
 # Imports lots of colors as RGB
 from src import color as Color
 
+# Clear screen
 if os.name == "posix":
     os.system("clear")
 else:
@@ -268,7 +269,7 @@ class Scene:
 class Player:
     game_pos = [0, 0]
     render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.frames[0].get_width()/2, GAME_HEIGHT/2 - Sprite.Player.frames[0].get_height()/2])
-    base_speed = 10
+    base_speed = 2.5
 
     @classmethod
     def update(cls, mouse_pos, mouse_down, keys_pressed: pygame.key.ScancodeWrapper):
