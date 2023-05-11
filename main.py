@@ -1,5 +1,6 @@
 # ----- Setup ------
-import pygame, os, sys, random, math
+import pygame, os, sys, random, math, time
+from cython import *
 pygame.init()
 
 # Imports lots of colors as RGB
@@ -12,7 +13,7 @@ else:
     os.system("cls")
 
 # ----- Constant Variables -----
-FPS = 120
+FPS = 0 # 120
 
 GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
@@ -35,50 +36,50 @@ def exit():
     sys.exit()
 
 def load_image(path, size = None):
-        """Returns the loaded image.
+    """Returns the loaded image.
 
-        Args:
-            paths (str): path to a single image.
-            
-        Returns:
-            pygame.Surface: A pygame surface of the image.
-        """
-        width_multiplier, height_multiplier = render.get_size_multiplier()
-        image = pygame.image.load(path)
+    Args:
+        paths (str): path to a single image.
         
-        if size:
-            return pygame.transform.smoothscale(image, (size[0] * width_multiplier, size[1] * height_multiplier))
-        return pygame.transform.smoothscale(image, (image.get_width() * width_multiplier, image.get_height() * height_multiplier))
+    Returns:
+        pygame.Surface: A pygame surface of the image.
+    """
+    width_multiplier, height_multiplier = render.get_size_multiplier()
+    image = pygame.image.load(path)
+    
+    if size:
+        return pygame.transform.smoothscale(image, (size[0] * width_multiplier, size[1] * height_multiplier))
+    return pygame.transform.smoothscale(image, (image.get_width() * width_multiplier, image.get_height() * height_multiplier))
     
 def load_images(paths, size = None):
-        """Returns the loaded images.
+    """Returns the loaded images.
 
-        Args:
-            paths (list): List of paths to sprite frames.
-            
-        Returns:
-            list: A list of loaded images.
-        """        
-        return [load_image(path, size) for path in paths]
-
+    Args:
+        paths (list): List of paths to sprite frames.
+        
+    Returns:
+        list: A list of loaded images.
+    """        
+    return [load_image(path, size) for path in paths]
+        
 # ----- Class -----
 class Render:
     info = pygame.display.Info()
-    DISPLAY_WIDTH = info.current_w
+    DISPLAY_WIDTH = info.current_w / 2
     DISPLAY_HEIGHT = info.current_h
     
     BACKGROUND_COLOR = Color.BLACK
     
     queued_images = []
     
-    def __init__(self, game_resolution: tuple[int, int]):
+    def __init__(self, game_resolution):
         """
         Initializes a Render object with the game resolution and the display resolution.
 
         Args:
-            game_resolution (tuple): Game resolution.
+            game_resolution (tuple [int, int]): Game resolution.
         """
-        self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME)
+        self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT))#, pygame.NOFRAME)
         pygame.display.set_caption("Shadow Fare")
         self.game_resolution = game_resolution
         
@@ -211,7 +212,7 @@ class Render:
 
 
 render = Render((GAME_WIDTH, GAME_WIDTH))
-
+start = time.time()
 class Sprite:    
     class Player:
         frames = load_images(["images/player/f0.png"], (100, 100))
@@ -229,7 +230,8 @@ class Sprite:
         class Foilage:
             class Tree:
                 frames = load_images(["images/scenery/foilage/tree/f0.png"], (300, 500))
-                
+print(f"Duration: {round(time.time() - start, 5)}") # 0.04502
+# 0.10709
 
 class Scene:
     buttons = []
@@ -331,7 +333,7 @@ class Object:
 
     def display(self):
         """Displays the object on the screen."""
-        render.blit(self.image, (self.game_pos[0] - Player.game_pos[0], self.game_pos[1] - Player.game_pos[1]))
+        render.blit(self.image, render.get_render_pos((self.game_pos[0] - Player.game_pos[0], self.game_pos[1] - Player.game_pos[1])))
 
 
 class World(Scene):

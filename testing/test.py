@@ -2,7 +2,11 @@
 import pygame, os, sys, time
 pygame.init()
 
-os.system("cls")
+# Clear screen
+if os.name == "posix":
+    os.system("clear")
+else:
+    os.system("cls")
 
 # ----- Constant Variables -----
 FPS = 120
