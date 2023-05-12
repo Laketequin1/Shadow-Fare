@@ -65,7 +65,7 @@ def load_images(paths, size = None):
 # ----- Class -----
 class Render:
     info = pygame.display.Info()
-    DISPLAY_WIDTH = info.current_w / 2
+    DISPLAY_WIDTH = info.current_w
     DISPLAY_HEIGHT = info.current_h
     
     BACKGROUND_COLOR = Color.BLACK
@@ -215,7 +215,8 @@ render = Render((GAME_WIDTH, GAME_WIDTH))
 start = time.time()
 class Sprite:    
     class Player:
-        frames = load_images(["images/player/f0.png"], (100, 100))
+        class Body:
+            frames = load_images(["images/player/body/f0.png"], (100, 100))
     
     class Guns:
         class Shotgun:
@@ -270,7 +271,7 @@ class Scene:
 
 class Player:
     game_pos = [0, 0]
-    render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.frames[0].get_width()/2, GAME_HEIGHT/2 - Sprite.Player.frames[0].get_height()/2])
+    render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.Body.frames[0].get_width()/2, GAME_HEIGHT/2 - Sprite.Player.Body.frames[0].get_height()/2])
     base_speed = 2.5
 
     @classmethod
@@ -306,7 +307,7 @@ class Player:
     @classmethod
     def display(cls):
         """Displays the player on the screen."""
-        render.blit(Sprite.Player.frames[0], cls.render_pos)
+        render.blit(Sprite.Player.Body.frames[0], cls.render_pos)
 
 
 class Object:
