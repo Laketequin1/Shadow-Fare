@@ -1,5 +1,7 @@
 # ----- Setup ------
 import pygame, os, sys, random, math, time
+from src import hand
+
 pygame.init()
 
 # Imports lots of colors as RGB
@@ -271,27 +273,35 @@ class Scene:
             button.update(mouse_pos, mouse_down)
 
 class Hand:
+    BODY_RADIUS = Sprite.Player.Body.frames[0].get_width() - 54
+    IMAGE = Sprite.Player.Hand.image
+    HAND_RADIUS = IMAGE.get_width()
+
     def __init__(self, center_pos, angle_offset):
-        self.BODY_RADIUS = Sprite.Player.Body.frames[0].get_width() - 54
-        self.IMAGE = Sprite.Player.Hand.image
-        self.HAND_RADIUS = self.IMAGE.get_width()
         self.center_pos = center_pos
         self.angle_offset = angle_offset
         self.pos = (0, 0)
 
     def update(self, mouse_pos):
-        # Calculate angle between mouse position and hand position
-        dx = mouse_pos[0] - self.center_pos[0]
-        dy = mouse_pos[1] - self.center_pos[1]
-        angle_to_mouse = math.atan2(dy, dx)
-        
-        # Update hand angle based on angle to mouse and current angle
-        self.angle = angle_to_mouse
-        self.angle %= 2 * math.pi
-        self.angle += self.angle_offset
+        self.pos = hand.calculate_hand_position(self.BODY_RADIUS, self.HAND_RADIUS, self.angle_offset, self.center_pos[0], self.center_pos[1], mouse_pos[0], mouse_pos[1])
+        #hand.calculate_hand_position(self.BODY_RADIUS, self.HAND_RADIUS, self.angle_offset, self.center_pos, mouse_pos)
+        '''
+        distance_x = mouse_pos[0] - self.center_pos[0]
+        distance_y = mouse_pos[1] - self.center_pos[1]
+        distance_to_mouse = math.hypot(distance_x, distance_y)
+        normalized_distance_x = distance_x / distance_to_mouse
+        normalized_distance_y = distance_y / distance_to_mouse
 
-        # Calculate hand position based on angle and radius
-        self.pos = (self.center_pos[0] + self.BODY_RADIUS * math.cos(self.angle) - self.HAND_RADIUS/2, self.center_pos[1] + self.BODY_RADIUS * math.sin(self.angle) - self.HAND_RADIUS/2)
+        self.angle = math.atan2(normalized_distance_y, normalized_distance_x) + self.angle_offset
+
+        cos_angle = math.cos(self.angle)
+        sin_angle = math.sin(self.angle)
+
+        self.pos = (
+            self.center_pos[0] + self.BODY_RADIUS * cos_angle - self.HAND_RADIUS / 2,
+            self.center_pos[1] + self.BODY_RADIUS * sin_angle - self.HAND_RADIUS / 2,
+        )
+        '''
 
     def display(self):
         """Displays the hand on the screen."""
