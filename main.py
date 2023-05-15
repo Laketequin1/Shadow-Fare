@@ -1,6 +1,5 @@
 # ----- Setup ------
 import pygame, os, sys, random, math, time
-from cython import *
 pygame.init()
 
 # Imports lots of colors as RGB
@@ -79,7 +78,10 @@ class Render:
         Args:
             game_resolution (tuple [int, int]): Game resolution.
         """
-        self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT))#, pygame.NOFRAME)
+        if os.name == "posix":
+            self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN)
+        else:
+            self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME)
         pygame.display.set_caption("Shadow Fare")
         self.game_resolution = game_resolution
         
@@ -212,11 +214,13 @@ class Render:
 
 
 render = Render((GAME_WIDTH, GAME_WIDTH))
-start = time.time()
+
 class Sprite:    
     class Player:
         class Body:
             frames = load_images(["images/player/body/f0.png"], (100, 100))
+        class Hand:
+            image = load_image("images/player/hands/f0.png", (40, 40))
     
     class Guns:
         class Shotgun:
@@ -231,8 +235,6 @@ class Sprite:
         class Foilage:
             class Tree:
                 frames = load_images(["images/scenery/foilage/tree/f0.png"], (300, 500))
-print(f"Duration: {round(time.time() - start, 5)}") # 0.04502
-# 0.10709
 
 class Scene:
     buttons = []
@@ -268,11 +270,41 @@ class Scene:
         for button in cls.buttons:
             button.update(mouse_pos, mouse_down)
 
+class Hand:
+    def __init__(self, center_pos, angle_offset):
+        self.BODY_RADIUS = Sprite.Player.Body.frames[0].get_width() - 54
+        self.IMAGE = Sprite.Player.Hand.image
+        self.HAND_RADIUS = self.IMAGE.get_width()
+        self.center_pos = center_pos
+        self.angle_offset = angle_offset
+        self.pos = (0, 0)
+
+    def update(self, mouse_pos):
+        # Calculate angle between mouse position and hand position
+        dx = mouse_pos[0] - self.center_pos[0]
+        dy = mouse_pos[1] - self.center_pos[1]
+        angle_to_mouse = math.atan2(dy, dx)
+        
+        # Update hand angle based on angle to mouse and current angle
+        self.angle = angle_to_mouse
+        self.angle %= 2 * math.pi
+        self.angle += self.angle_offset
+
+        # Calculate hand position based on angle and radius
+        self.pos = (self.center_pos[0] + self.BODY_RADIUS * math.cos(self.angle) - self.HAND_RADIUS/2, self.center_pos[1] + self.BODY_RADIUS * math.sin(self.angle) - self.HAND_RADIUS/2)
+
+    def display(self):
+        """Displays the hand on the screen."""
+        render.blit(self.IMAGE, self.pos)
+
 
 class Player:
     game_pos = [0, 0]
     render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.Body.frames[0].get_width()/2, GAME_HEIGHT/2 - Sprite.Player.Body.frames[0].get_height()/2])
+    hand_centre_pos = render.get_render_pos([GAME_WIDTH/2, GAME_HEIGHT/2])
     base_speed = 2.5
+    hands = {"left":Hand(hand_centre_pos, -0.5), "right":Hand(hand_centre_pos, 0.5)}
+    IMAGE_FRAMES = Sprite.Player.Body
 
     @classmethod
     def update(cls, mouse_pos, mouse_down, keys_pressed: pygame.key.ScancodeWrapper):
@@ -302,11 +334,17 @@ class Player:
         # Update the player's position
         cls.game_pos = (cls.game_pos[0] + move_vector[0], cls.game_pos[1] + move_vector[1])
 
+        # Update the hands's render positions
+        cls.hands["left"].update(mouse_pos)
+        cls.hands["right"].update(mouse_pos)
+
         cls.display()
 
     @classmethod
     def display(cls):
-        """Displays the player on the screen."""
+        """Displays the player and hands on the screen."""
+        cls.hands["left"].display()
+        cls.hands["right"].display()
         render.blit(Sprite.Player.Body.frames[0], cls.render_pos)
 
 
