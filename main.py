@@ -226,9 +226,11 @@ render = Render((GAME_WIDTH, GAME_WIDTH))
 class Sprite:    
     class Player:
         class Body:
-            frames = load_images(["images/player/body/f0.png"], (100, 100))
+            size = (100, 100)
+            frames = load_images(["images/player/body/f0.png"], size)
         class Hand:
-            image = load_image("images/player/hands/f0.png", (40, 40))
+            size = (40, 40)
+            image = load_image("images/player/hands/f0.png", size)
     
     class Guns:
         class Shotgun:
@@ -237,12 +239,14 @@ class Sprite:
     class UI:
         class Menu:
             class Background:
-                image = load_image("images/UI/menu/Background.png", (GAME_WIDTH, GAME_HEIGHT))
+                size = (GAME_WIDTH, GAME_HEIGHT)
+                image = load_image("images/UI/menu/Background.png", size)
     
     class Scenery:
         class Foilage:
             class Tree:
-                frames = load_images(["images/scenery/foilage/tree/f0.png"], (300, 500))
+                size = (300, 500)
+                frames = load_images(["images/scenery/foilage/tree/f0.png"], size)
 
 class Scene:
     buttons = []
@@ -283,9 +287,9 @@ class Scene:
 class Hand:
     GAME_CENTER_POS = np.array([GAME_WIDTH / 2, GAME_HEIGHT / 2], dtype=np.double)
     RENDER_CENTER_POS = np.array([render.DISPLAY_WIDTH / 2, render.DISPLAY_HEIGHT / 2], dtype=np.double)
-    BODY_RADIUS = np.array((Sprite.Player.Body.frames[0].get_width() / 2 / render.HEIGHT_MULTIPLIER, Sprite.Player.Body.frames[0].get_width() / 2 / render.WIDTH_MULTIPLIER), dtype=np.double)
+    BODY_RADIUS = np.array((Sprite.Player.Body.size[0] / 2, Sprite.Player.Body.size[1] / 2), dtype=np.double)
+    HAND_RADIUS = np.array((Sprite.Player.Hand.size[0] / 2, Sprite.Player.Hand.size[1] / 2), dtype=np.double)
     IMAGE = Sprite.Player.Hand.image
-    HAND_RADIUS = np.array((IMAGE.get_width() / 2 / render.HEIGHT_MULTIPLIER, IMAGE.get_height() / 2 / render.WIDTH_MULTIPLIER), dtype=np.double)
 
     def __init__(self, angle_offset):
         """

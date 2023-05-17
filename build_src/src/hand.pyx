@@ -1,18 +1,22 @@
 cimport cython
-from libc.math cimport atan2, cos, sin, hypot, fmod
+from libc.math cimport atan2, cos, sin, hypot, fmod, sqrt
 
 def calculate_hand_position(double[::1] BODY_RADIUS, double[::1] HAND_RADIUS, double angle_offset, double[::1] render_center_pos, double[::1] game_center_pos, double[::1] mouse_pos):
     # Calculate the distance between the mouse position and the render center position
     cdef double distance_x = mouse_pos[0] - render_center_pos[0]
     cdef double distance_y = mouse_pos[1] - render_center_pos[1]
-    cdef double distance_to_mouse = hypot(distance_x, distance_y)
+    
+    # Calculate the distance to the mouse position using the oval equation
+    cdef double distance_to_mouse = sqrt(distance_x * distance_x / (BODY_RADIUS[0] * BODY_RADIUS[0]) + distance_y * distance_y / (BODY_RADIUS[1] * BODY_RADIUS[1]))
 
     # Normalize the distance to get the direction vector
     cdef double normalized_distance_x
     cdef double normalized_distance_y
-    if distance_to_mouse != 0:
-        normalized_distance_x = distance_x / distance_to_mouse
-        normalized_distance_y = distance_y / distance_to_mouse
+
+    # Prevent division by 0 error
+    if (BODY_RADIUS[1] * BODY_RADIUS[0] * distance_to_mouse) != 0:
+        normalized_distance_x = distance_x / (BODY_RADIUS[0] * distance_to_mouse)
+        normalized_distance_y = distance_y / (BODY_RADIUS[1] * distance_to_mouse)
     else:
         return None
 
