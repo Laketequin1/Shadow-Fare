@@ -1,6 +1,7 @@
 # ----- Setup ------
 import pygame, os, sys, random, math, time
-from src import hand
+import numpy as np
+from src.hand import calculate_hand_position
 
 pygame.init()
 
@@ -19,7 +20,7 @@ FPS = 0 # 120
 GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
 
-settings = {"ShowStats":True}
+settings = {"ShowStats":True, "NoFullscreen": True}
 
 class Font:
     menu = pygame.font.SysFont(None, 100)
@@ -70,6 +71,10 @@ class Render:
     DISPLAY_HEIGHT = info.current_h
     
     BACKGROUND_COLOR = Color.BLACK
+
+    # Debugging
+    DEBUG_DOT = pygame.Surface((6, 6))
+    DEBUG_DOT.fill((255, 0, 0))
     
     queued_images = []
     
@@ -80,7 +85,7 @@ class Render:
         Args:
             game_resolution (tuple [int, int]): Game resolution.
         """
-        if os.name == "posix":
+        if os.name == "posix" and not settings["NoFullscreen"]:
             self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN)
         else:
             self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME)
@@ -134,8 +139,9 @@ class Render:
         fps_text = render.scale_image(fps_text)
         fps_rect = fps_text.get_rect()
         fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
-        
-        self.blit(fps_text, fps_rect)
+
+        self.blit(fps_text, fps_rect.topleft)
+        self.blit(self.DEBUG_DOT, (self.DISPLAY_WIDTH / 2 - self.DEBUG_DOT.get_width() / 2, self.DISPLAY_HEIGHT / 2 - self.DEBUG_DOT.get_height() / 2))
     
     def display(self):
         """
@@ -241,6 +247,7 @@ class Sprite:
 class Scene:
     buttons = []
     objects = []
+    
     @classmethod
     def add_button(cls, button):
         """
@@ -272,48 +279,47 @@ class Scene:
         for button in cls.buttons:
             button.update(mouse_pos, mouse_down)
 
-class Hand:
-    BODY_RADIUS = Sprite.Player.Body.frames[0].get_width() - 54
-    IMAGE = Sprite.Player.Hand.image
-    HAND_RADIUS = IMAGE.get_width()
 
-    def __init__(self, center_pos, angle_offset):
-        self.center_pos = center_pos
+class Hand:
+    GAME_CENTER_POS = np.array([GAME_WIDTH / 2, GAME_HEIGHT / 2], dtype=np.double)
+    RENDER_CENTER_POS = np.array([render.DISPLAY_WIDTH / 2, render.DISPLAY_HEIGHT / 2], dtype=np.double)
+    BODY_RADIUS = np.array((Sprite.Player.Body.frames[0].get_width() / 2 / render.HEIGHT_MULTIPLIER, Sprite.Player.Body.frames[0].get_width() / 2 / render.WIDTH_MULTIPLIER), dtype=np.double)
+    IMAGE = Sprite.Player.Hand.image
+    HAND_RADIUS = np.array((IMAGE.get_width() / 2 / render.HEIGHT_MULTIPLIER, IMAGE.get_height() / 2 / render.WIDTH_MULTIPLIER), dtype=np.double)
+
+    def __init__(self, angle_offset):
+        """
+        Initializes a Hand object with the angle offset for the left/right hand.
+
+        Args:
+            angle_offset (int): The angle offset around the player radius from pointing at the mouse. Measured in radians.
+        """
         self.angle_offset = angle_offset
         self.pos = (0, 0)
 
     def update(self, mouse_pos):
-        self.pos = hand.calculate_hand_position(self.BODY_RADIUS, self.HAND_RADIUS, self.angle_offset, self.center_pos[0], self.center_pos[1], mouse_pos[0], mouse_pos[1])
-        #hand.calculate_hand_position(self.BODY_RADIUS, self.HAND_RADIUS, self.angle_offset, self.center_pos, mouse_pos)
-        '''
-        distance_x = mouse_pos[0] - self.center_pos[0]
-        distance_y = mouse_pos[1] - self.center_pos[1]
-        distance_to_mouse = math.hypot(distance_x, distance_y)
-        normalized_distance_x = distance_x / distance_to_mouse
-        normalized_distance_y = distance_y / distance_to_mouse
-
-        self.angle = math.atan2(normalized_distance_y, normalized_distance_x) + self.angle_offset
-
-        cos_angle = math.cos(self.angle)
-        sin_angle = math.sin(self.angle)
-
-        self.pos = (
-            self.center_pos[0] + self.BODY_RADIUS * cos_angle - self.HAND_RADIUS / 2,
-            self.center_pos[1] + self.BODY_RADIUS * sin_angle - self.HAND_RADIUS / 2,
-        )
-        '''
+        """
+        Calculates the hand position using a cython module, then sets its position.
+        
+        Args:
+            mouse_pos (tuple): Current mouse position relative to the screen.
+        """
+        mouse_pos = np.array(mouse_pos, dtype=np.double)
+        pos = calculate_hand_position(self.BODY_RADIUS, self.HAND_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
+        
+        if pos:
+            self.pos = pos
 
     def display(self):
         """Displays the hand on the screen."""
-        render.blit(self.IMAGE, self.pos)
+        render.blit(self.IMAGE, render.get_render_pos(self.pos))
 
 
 class Player:
     game_pos = [0, 0]
-    render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.Body.frames[0].get_width()/2, GAME_HEIGHT/2 - Sprite.Player.Body.frames[0].get_height()/2])
-    hand_centre_pos = render.get_render_pos([GAME_WIDTH/2, GAME_HEIGHT/2])
+    render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.Body.frames[0].get_width() / 2 / render.WIDTH_MULTIPLIER, GAME_HEIGHT/2 - Sprite.Player.Body.frames[0].get_height() / 2 / render.HEIGHT_MULTIPLIER])
     base_speed = 2.5
-    hands = {"left":Hand(hand_centre_pos, -0.5), "right":Hand(hand_centre_pos, 0.5)}
+    hands = {"left":Hand(-0.5), "right":Hand(0.5)}
     IMAGE_FRAMES = Sprite.Player.Body
 
     @classmethod
@@ -322,7 +328,7 @@ class Player:
         Updates the player and handles movement.
 
         Args:
-            mouse_pos (tuple): Current mouse position.
+            mouse_pos (tuple): Current mouse position relative to the screen.
             mouse_down (tuple): Current mouse button states.
             keys_pressed (pygame.key.ScancodeWrapper): Current keyboard button states.
         """
@@ -394,7 +400,7 @@ class World(Scene):
         A class method that updates all events in the World and then displays them.
 
         Args:
-            mouse_pos (tuple): Current position of the mouse.
+            mouse_pos (tuple): Current position of the mouse relative to the screen.
             mouse_down (tuple): Current state of the mouse buttons.
         """
         cls.update_buttons(mouse_pos, mouse_down)
