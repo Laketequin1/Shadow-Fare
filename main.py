@@ -46,12 +46,11 @@ def load_image(path, size = None):
     Returns:
         pygame.Surface: A pygame surface of the image.
     """
-    width_multiplier, height_multiplier = render.get_size_multiplier()
     image = pygame.image.load(path)
     
     if size:
-        return pygame.transform.smoothscale(image, (size[0] * width_multiplier, size[1] * height_multiplier))
-    return pygame.transform.smoothscale(image, (image.get_width() * width_multiplier, image.get_height() * height_multiplier))
+        return pygame.transform.smoothscale(image, (size[0] * render.WIDTH_MULTIPLIER, size[1] * render.HEIGHT_MULTIPLIER))
+    return pygame.transform.smoothscale(image, (image.get_width() * render.WIDTH_MULTIPLIER, image.get_height() * render.HEIGHT_MULTIPLIER))
     
 def load_images(paths, size = None):
     """Returns the loaded images.
@@ -113,11 +112,8 @@ class Render:
 
         Returns:
             pygame.Surface: The scaled surface.
-        """
-        width_multiplier, height_multiplier = render.get_size_multiplier()
-        
-        surface_resize = pygame.transform.smoothscale(surface, (surface.get_width() * width_multiplier, surface.get_height() * height_multiplier))
-        
+        """        
+        surface_resize = pygame.transform.smoothscale(surface, (surface.get_width() * render.WIDTH_MULTIPLIER, surface.get_height() * render.HEIGHT_MULTIPLIER))
         return surface_resize
     
     def update(self):
@@ -374,8 +370,7 @@ class Object:
             image (pygame.Surface): The image of the object.
         """
         if size:
-            width_multiplier, height_multiplier = render.get_size_multiplier()
-            self.image = pygame.transform.smoothscale(image, (size[0] * width_multiplier, size[1] * height_multiplier))
+            self.image = pygame.transform.smoothscale(image, (size[0] * render.WIDTH_MULTIPLIER, size[1] * render.HEIGHT_MULTIPLIER))
         else:
             self.image = image
         self.game_pos = game_pos
