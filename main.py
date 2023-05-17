@@ -1,3 +1,12 @@
+# ----- Settings -----
+settings = {
+            "ShowDebug":True, # [Bool] (Default: False) Shows debug and stat information like FPS.
+            "NoFullscreen": True, # [Bool] (Default: False) Disables fullscreen mode on Linux.
+            "DisplayHeightMultiplier": 1, # [Int] (Default: 1) Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
+            "DisplayWidthMultiplier": 1, # [Int] (Default: 1) Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
+            "NoFPSCap": True # [Bool] (Default: False) # Disables the FPS cap of 120FPS.
+            }
+
 # ----- Setup ------
 import pygame, os, sys, random, math, time
 import numpy as np
@@ -15,12 +24,13 @@ else:
     os.system("cls")
 
 # ----- Constant Variables -----
-FPS = 0 # 120
+if not settings["NoFPSCap"]:
+    FPS = 120
+else:
+    FPS = 0
 
 GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
-
-settings = {"ShowStats":True, "NoFullscreen": True}
 
 class Font:
     menu = pygame.font.SysFont(None, 100)
@@ -66,8 +76,8 @@ def load_images(paths, size = None):
 # ----- Class -----
 class Render:
     info = pygame.display.Info()
-    DISPLAY_WIDTH = info.current_w
-    DISPLAY_HEIGHT = info.current_h
+    DISPLAY_WIDTH = info.current_w * settings["DisplayWidthMultiplier"]
+    DISPLAY_HEIGHT = info.current_h * settings["DisplayHeightMultiplier"]
     
     BACKGROUND_COLOR = Color.BLACK
 
@@ -126,7 +136,7 @@ class Render:
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 exit()
     
-    def show_stats(self):
+    def show_debug(self):
         """
         Blits game statistics like FPS to the screen. Useful for debugging.
         """
@@ -145,8 +155,8 @@ class Render:
         """
         self.screen.fill(self.BACKGROUND_COLOR)
         
-        if settings["ShowStats"]:
-            self.show_stats()
+        if settings["ShowDebug"]:
+            self.show_debug()
         
         for i, image in enumerate(self.queued_images):
             self.screen.blit(*image)
@@ -377,7 +387,7 @@ class Object:
 
     def display(self):
         """Displays the object on the screen."""
-        render.blit(self.image, render.get_render_pos((self.game_pos[0] - Player.game_pos[0], self.game_pos[1] - Player.game_pos[1])))
+        render.blit(self.image, render.get_render_pos((self.game_pos[0] - Player.game_pos[0] + GAME_WIDTH / 2, self.game_pos[1] - Player.game_pos[1] + GAME_HEIGHT / 2)))
 
 
 class World(Scene):
@@ -512,7 +522,7 @@ MainMenu.add_button(Button("Exit", (GAME_WIDTH / 2 - 400, 650), (800, 180), (255
 World.add_button(Button("ll", (10, 10), (100, 100), (255, 0, 0), Font.symbol, MainMenu.toggle)) # Pause Button
 
 # World Scene Objects
-World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (500, 50)))
+World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (0, 0)))
 World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (200, 150), (40, 70)))
 
 running = True
