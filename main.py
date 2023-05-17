@@ -177,12 +177,6 @@ class Render:
         Waits for the appropriate amount of time to meet the target FPS.
         """
         clock.tick(FPS)
-            
-    def get_size_multiplier(self):
-        """
-        Returns the width and height multipliers for scaling game elements.
-        """
-        return (self.WIDTH_MULTIPLIER, self.HEIGHT_MULTIPLIER)
     
     def get_game_pos(self, pos):
         """
