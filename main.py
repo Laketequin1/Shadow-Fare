@@ -4,7 +4,8 @@ settings = {
             "NoFullscreen": True, # [Bool] (Default: False) Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float] (Default: 1) Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1, # [Float] (Default: 1) Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
-            "NoFPSCap": True # [Bool] (Default: False) Disables the FPS cap of 120FPS.
+            "NoTPSCap": False, # [Bool] (Default: False) Disables the TPS cap of 64 ticks per second.
+            "SpeedMultiplier": 1 # [Float] (Default: 1) Scales the player speed, making it faster or slower.
             }
 
 # ----- Setup ------
@@ -24,10 +25,10 @@ else:
     os.system("cls")
 
 # ----- Constant Variables -----
-if not settings["NoFPSCap"]:
-    FPS = 120
+if not settings["NoTPSCap"]:
+    TPS = 64
 else:
-    FPS = 0
+    TPS = 0
 
 GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
@@ -184,9 +185,9 @@ class Render:
 
     def tick(self):
         """
-        Waits for the appropriate amount of time to meet the target FPS.
+        Waits for the appropriate amount of time to meet the target TPS.
         """
-        clock.tick(FPS)
+        clock.tick(TPS)
     
     def get_game_pos(self, pos):
         """
@@ -226,10 +227,10 @@ render = Render((GAME_WIDTH, GAME_WIDTH))
 class Sprite:    
     class Player:
         class Body:
-            size = (100, 100)
+            size = (80, 80)
             frames = load_images(["images/player/body/f0.png"], size)
         class Hand:
-            size = (40, 40)
+            size = (30, 30)
             image = load_image("images/player/hands/f0.png", size)
     
     class Guns:
@@ -322,7 +323,7 @@ class Hand:
 class Player:
     game_pos = [0, 0]
     render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.Body.frames[0].get_width() / 2 / render.WIDTH_MULTIPLIER, GAME_HEIGHT/2 - Sprite.Player.Body.frames[0].get_height() / 2 / render.HEIGHT_MULTIPLIER])
-    base_speed = 2.5
+    base_speed = 6 * settings["SpeedMultiplier"]
     hands = {"left":Hand(-0.5), "right":Hand(0.5)}
     IMAGE_FRAMES = Sprite.Player.Body
 
@@ -527,7 +528,7 @@ World.add_button(Button("ll", (10, 10), (100, 100), (255, 0, 0), Font.symbol, Ma
 
 # World Scene Objects
 World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (0, 0)))
-World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (200, 150), (40, 70)))
+World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (350, 180), (60, 60)))
 
 running = True
 while running:
