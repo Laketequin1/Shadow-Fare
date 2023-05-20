@@ -298,7 +298,6 @@ class Hand:
     RENDER_CENTER_POS = np.array([render.DISPLAY_WIDTH / 2, render.DISPLAY_HEIGHT / 2], dtype=np.double)
     BODY_RADIUS = np.array((Sprite.Player.Body.size[0] / 2, Sprite.Player.Body.size[1] / 2), dtype=np.double)
     HAND_RADIUS = np.array((Sprite.Player.Hand.size[0] / 2, Sprite.Player.Hand.size[1] / 2), dtype=np.double)
-    IMAGE = Sprite.Player.Hand.image
 
     def __init__(self, angle_offset):
         """
@@ -325,7 +324,7 @@ class Hand:
 
     def display(self):
         """Displays the hand on the screen."""
-        render.blit(self.IMAGE, render.get_render_pos(self.pos))
+        render.blit(Sprite.Player.Hand.image, render.get_render_pos(self.pos))
 
 
 class Player:
@@ -333,7 +332,6 @@ class Player:
     render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.Body.frames[0].get_width() / 2 / render.WIDTH_MULTIPLIER, GAME_HEIGHT/2 - Sprite.Player.Body.frames[0].get_height() / 2 / render.HEIGHT_MULTIPLIER])
     base_speed = 6 * settings["SpeedMultiplier"]
     hands = {"left":Hand(-0.5), "right":Hand(0.5)}
-    IMAGE_FRAMES = Sprite.Player.Body
     current_frame = 0
     last_frame_time = pygame.time.get_ticks()
 
@@ -376,10 +374,10 @@ class Player:
         cls.hands["right"].display()
 
         current_time = pygame.time.get_ticks()
-        if current_time - cls.last_frame_time >= cls.IMAGE_FRAMES.frame_interval:
+        if current_time - cls.last_frame_time >= Sprite.Player.Body.frame_interval:
             cls.last_frame_time = current_time
-            cls.current_frame = (cls.current_frame + 1) % len(cls.IMAGE_FRAMES.frames)
-        render.blit(cls.IMAGE_FRAMES.frames[cls.current_frame], cls.render_pos)
+            cls.current_frame = (cls.current_frame + 1) % len(Sprite.Player.Body.frames)
+        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
 
 
 class Object:
