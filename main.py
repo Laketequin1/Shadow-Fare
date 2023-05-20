@@ -1,15 +1,16 @@
 # ----- Settings -----
 settings = {
-            "ShowDebug":True, # [Bool] (Default: False) Shows debug and stat information like FPS.
-            "NoFullscreen": True, # [Bool] (Default: False) Disables fullscreen mode on Linux.
-            "DisplayHeightMultiplier": 1, # [Float] (Default: 1) Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
-            "DisplayWidthMultiplier": 1, # [Float] (Default: 1) Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
-            "NoTPSCap": False, # [Bool] (Default: False) Disables the TPS cap of 64 ticks per second.
-            "SpeedMultiplier": 1 # [Float] (Default: 1) Scales the player speed, making it faster or slower.
+            "ShowDebug":True,             # [Bool]   (Default: False)  Shows debug and stat information like FPS.
+            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
+            "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
+            "NoTPSCap": False,            # [Bool]   (Default: False)  Disables the TPS cap of 64 ticks per second.
+            "FPS": 0,                     # [Int]    (Default: 0)      Limit rendering frames per second. Zero represents no cap.
+            "SpeedMultiplier": 1          # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
             }
 
 # ----- Setup ------
-import pygame, os, sys, random, math, time
+import pygame, os, sys, random, math, time, threading
 import numpy as np
 from src.hand import calculate_hand_position
 
@@ -30,22 +31,26 @@ if not settings["NoTPSCap"]:
 else:
     TPS = 0
 
+FPS = settings["FPS"]
+
 GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
 
 class Font:
     menu = pygame.font.SysFont(None, 100)
     symbol = pygame.font.SysFont(None, 80)
-    debug = pygame.font.Font("fonts/RobotoMono.ttf", 60)
+    debug = pygame.font.Font("fonts/RobotoMono.ttf", 50)
         
         
 # ----- Variables -----
-clock = pygame.time.Clock()
+tps_clock = pygame.time.Clock()
+fps_clock = pygame.time.Clock()
 
 # ----- Function ------
 def exit():
     """Exits the server and game."""
-    pygame.quit()
+    global running
+    running = False
     sys.exit()
 
 def load_image(path, size = None):
@@ -127,7 +132,7 @@ class Render:
         surface_resize = pygame.transform.smoothscale(surface, (surface.get_width() * render.WIDTH_MULTIPLIER, surface.get_height() * render.HEIGHT_MULTIPLIER))
         return surface_resize
     
-    def update(self):
+    def handle_events(self):
         """
         Handles events and updates the display.
         """
@@ -141,13 +146,20 @@ class Render:
         """
         Blits game statistics like FPS to the screen. Useful for debugging.
         """
-        fps = clock.get_fps()
+        fps = fps_clock.get_fps()
         fps_text = Font.debug.render(f"FPS: {fps:.1f}", True, (255, 255, 255))
         fps_text = render.scale_image(fps_text)
         fps_rect = fps_text.get_rect()
         fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
 
+        tps = tps_clock.get_fps()
+        tps_text = Font.debug.render(f"TPS: {tps:.1f}", True, (255, 255, 255))
+        tps_text = render.scale_image(tps_text)
+        tps_rect = tps_text.get_rect()
+        tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height))
+
         self.blit(fps_text, fps_rect.topleft)
+        self.blit(tps_text, tps_rect.topleft)
         self.blit(self.DEBUG_DOT, (self.DISPLAY_WIDTH / 2 - self.DEBUG_DOT.get_width() / 2, self.DISPLAY_HEIGHT / 2 - self.DEBUG_DOT.get_height() / 2))
     
     def display(self):
@@ -182,12 +194,6 @@ class Render:
             pygame.key.ScancodeWrapper: Contains the keyboard button states.
         """
         return pygame.key.get_pressed()
-
-    def tick(self):
-        """
-        Waits for the appropriate amount of time to meet the target TPS.
-        """
-        clock.tick(TPS)
     
     def get_game_pos(self, pos):
         """
@@ -359,8 +365,6 @@ class Player:
         cls.hands["left"].update(mouse_pos)
         cls.hands["right"].update(mouse_pos)
 
-        cls.display()
-
     @classmethod
     def display(cls):
         """Displays the player and hands on the screen."""
@@ -408,9 +412,15 @@ class World(Scene):
             mouse_down (tuple): Current state of the mouse buttons.
         """
         cls.update_buttons(mouse_pos, mouse_down)
-        
-        cls.display_objects()
         Player.update(mouse_pos, mouse_down, keys_pressed)
+
+    @classmethod
+    def display(cls):
+        """
+        A class method that displays everything in tbe World.
+        """
+        cls.display_objects()
+        Player.display()
         cls.display_overlay()
 
     @classmethod
@@ -508,8 +518,6 @@ class MainMenu(Scene):
         """
         cls.update_buttons(mouse_pos, mouse_down)
         
-        cls.display()
-        
     @classmethod
     def display(cls):
         """Displays the MainMenu."""
@@ -531,15 +539,38 @@ World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (0, 0)))
 World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (350, 180), (60, 60)))
 
 running = True
-while running:
-    mouse_pos, mouse_down = render.get_mouse()
-    keys_pressed = render.get_keys()
 
-    if MainMenu.enabled:
-        MainMenu.update(mouse_pos, mouse_down)
-    else:
-        World.update(mouse_pos, mouse_down, keys_pressed)
-    
-    render.update()
-    render.tick()
-    render.display()
+def game_logic():
+    global running, render, MainMenu, World
+    while running:
+        mouse_pos, mouse_down = render.get_mouse()
+        keys_pressed = render.get_keys()
+
+        if MainMenu.enabled:
+            MainMenu.update(mouse_pos, mouse_down)
+        else:
+            World.update(mouse_pos, mouse_down, keys_pressed)
+        
+        render.handle_events()
+        tps_clock.tick(TPS)
+
+def render_loop():
+    global running, render, MainMenu, World
+    while running:
+        if MainMenu.enabled:
+            MainMenu.display()
+        else:
+            World.display()
+
+        render.display()
+        fps_clock.tick(FPS)
+
+if __name__ == "__main__":
+    game_thread = threading.Thread(target=game_logic)
+    game_thread.start()
+
+    render_loop()
+
+    game_thread.join()
+
+    pygame.quit()
