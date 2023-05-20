@@ -234,7 +234,8 @@ class Sprite:
     class Player:
         class Body:
             size = (80, 80)
-            frames = load_images(["images/player/body/f0.png"], size)
+            frame_interval = 150 # ms
+            frames = load_images([f"images/player/body/f{x}.png" for x in range(4)], size)
         class Hand:
             size = (30, 30)
             image = load_image("images/player/hands/f0.png", size)
@@ -254,6 +255,7 @@ class Sprite:
             class Tree:
                 size = (300, 500)
                 frames = load_images(["images/scenery/foilage/tree/f0.png"], size)
+
 
 class Scene:
     buttons = []
@@ -332,6 +334,8 @@ class Player:
     base_speed = 6 * settings["SpeedMultiplier"]
     hands = {"left":Hand(-0.5), "right":Hand(0.5)}
     IMAGE_FRAMES = Sprite.Player.Body
+    current_frame = 0
+    last_frame_time = pygame.time.get_ticks()
 
     @classmethod
     def update(cls, mouse_pos, mouse_down, keys_pressed: pygame.key.ScancodeWrapper):
@@ -370,7 +374,12 @@ class Player:
         """Displays the player and hands on the screen."""
         cls.hands["left"].display()
         cls.hands["right"].display()
-        render.blit(Sprite.Player.Body.frames[0], cls.render_pos)
+
+        current_time = pygame.time.get_ticks()
+        if current_time - cls.last_frame_time >= cls.IMAGE_FRAMES.frame_interval:
+            cls.last_frame_time = current_time
+            cls.current_frame = (cls.current_frame + 1) % len(cls.IMAGE_FRAMES.frames)
+        render.blit(cls.IMAGE_FRAMES.frames[cls.current_frame], cls.render_pos)
 
 
 class Object:
