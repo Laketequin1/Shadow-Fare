@@ -4,8 +4,8 @@ settings = {
             "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
-            "NoTPSCap": False,            # [Bool]   (Default: False)  Disables the TPS cap of 64 ticks per second.
-            "FPS": 0,                     # [Int]    (Default: 0)      Limit rendering frames per second. Zero represents no cap.
+            "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
+            "FPS": 200,                   # [Int]    (Default: 200)    Limit rendering frames per second.
             "SpeedMultiplier": 1          # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
             }
 
@@ -26,12 +26,15 @@ else:
     os.system("cls")
 
 # ----- Constant Variables -----
-if not settings["NoTPSCap"]:
-    TPS = 64
-else:
-    TPS = 0
+# Ticks per second
+TPS = settings["TPS"]
+# Seconds per tick
+SPT = 1/TPS
 
+#Frames per second
 FPS = settings["FPS"]
+# Seconds per tick
+SPF = 1/FPS
 
 GAME_WIDTH = 1920
 GAME_HEIGHT = 1080
@@ -43,8 +46,6 @@ class Font:
         
         
 # ----- Variables -----
-tps_clock = pygame.time.Clock()
-fps_clock = pygame.time.Clock()
 
 # ----- Function ------
 def exit():
@@ -53,31 +54,38 @@ def exit():
     running = False
     sys.exit()
 
-def load_image(path, size = None):
+def load_image(path, size = None, transparent = False):
     """Returns the loaded image.
 
     Args:
         paths (str): path to a single image.
+        size (array): Size to set the image.
+        transparent (bool): Makes image alpha if set to True.
         
     Returns:
         pygame.Surface: A pygame surface of the image.
     """
-    image = pygame.image.load(path)
+    if transparent:
+        image = pygame.image.load(path)
+    else:
+        image = pygame.image.load(path).convert()
     
     if size:
         return pygame.transform.smoothscale(image, (size[0] * render.WIDTH_MULTIPLIER, size[1] * render.HEIGHT_MULTIPLIER))
     return pygame.transform.smoothscale(image, (image.get_width() * render.WIDTH_MULTIPLIER, image.get_height() * render.HEIGHT_MULTIPLIER))
     
-def load_images(paths, size = None):
+def load_images(paths, size = None, transparent = False):
     """Returns the loaded images.
 
     Args:
         paths (list): List of paths to sprite frames.
+        size (array): Size to set the image frames.
+        transparent (bool): Makes image frames alpha if set to True.
         
     Returns:
         list: A list of loaded images.
     """        
-    return [load_image(path, size) for path in paths]
+    return [load_image(path, size, transparent) for path in paths]
         
 # ----- Class -----
 class Render:
@@ -92,6 +100,12 @@ class Render:
     DEBUG_DOT.fill((255, 0, 0))
     
     queued_images = []
+
+    running_tps = np.array([TPS])
+    average_running_tps = TPS
+
+    running_fps = np.array([FPS])
+    average_running_fps = FPS
     
     def __init__(self, game_resolution):
         """
@@ -146,17 +160,15 @@ class Render:
         """
         Blits game statistics like FPS to the screen. Useful for debugging.
         """
-        fps = fps_clock.get_fps()
-        fps_text = Font.debug.render(f"FPS: {fps:.1f}", True, (255, 255, 255))
+        fps_text = Font.debug.render(f"FPS: {self.average_running_fps:.1f}", True, (255, 255, 255))
         fps_text = render.scale_image(fps_text)
         fps_rect = fps_text.get_rect()
         fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
 
-        tps = tps_clock.get_fps()
-        tps_text = Font.debug.render(f"TPS: {tps:.1f}", True, (255, 255, 255))
+        tps_text = Font.debug.render(f"TPS: {self.running_tps[0]:.1f}", True, (255, 255, 255))
         tps_text = render.scale_image(tps_text)
         tps_rect = tps_text.get_rect()
-        tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height / self.HEIGHT_MULTIPLIER))
+        tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height))
 
         self.blit(fps_text, fps_rect.topleft)
         self.blit(tps_text, tps_rect.topleft)
@@ -227,6 +239,30 @@ class Render:
         
         return pos
 
+    def update_game_loop_duration(self, duration):
+        """
+        Updates the game loop duration list and calculates the average TPS (ticks per second).
+
+        Args:
+            duration (float): The duration of the game loop iteration in seconds.
+        """
+        self.running_tps = np.append(self.running_tps, 1/duration)
+        if len(self.running_tps) > 100:
+            self.running_tps = self.running_tps[1:]
+        self.average_running_tps = np.mean(self.running_tps)
+
+    def update_render_loop_duration(self, duration):
+        """
+        Updates the render loop duration list and calculates the average FPS (frames per second).
+
+        Args:
+            duration (float): The duration of the render loop iteration in seconds.
+        """
+        self.running_fps = np.append(self.running_fps, 1/duration)
+        if len(self.running_fps) > min(FPS * 3, 1000):
+            self.running_fps = self.running_fps[1:]
+        self.average_running_fps = np.mean(self.running_fps)
+
 
 render = Render((GAME_WIDTH, GAME_WIDTH))
 
@@ -235,10 +271,12 @@ class Sprite:
         class Body:
             size = (80, 80)
             frame_interval = 150 # ms
-            frames = load_images([f"images/player/body/f{x}.png" for x in range(4)], size)
+            transperent = True
+            frames = load_images([f"images/player/body/f{x}.png" for x in range(4)], size, transperent)
         class Hand:
             size = (30, 30)
-            image = load_image("images/player/hands/f0.png", size)
+            transparent = True
+            image = load_image("images/player/hands/f0.png", size, transparent)
     
     class Guns:
         class Shotgun:
@@ -248,12 +286,14 @@ class Sprite:
         class Menu:
             class Background:
                 size = (GAME_WIDTH, GAME_HEIGHT)
+                transparent = False
                 image = load_image("images/UI/menu/Background.png", size)
     
     class Scenery:
         class Foilage:
             class Tree:
                 size = (300, 500)
+                transparent = False
                 frames = load_images(["images/scenery/foilage/tree/f0.png"], size)
 
 
@@ -553,6 +593,8 @@ def game_logic():
     """
     global running, render, MainMenu, World
     while running:
+        loop_start_time = time.perf_counter()
+
         mouse_pos, mouse_down = render.get_mouse()
         keys_pressed = render.get_keys()
 
@@ -562,7 +604,15 @@ def game_logic():
             World.update(mouse_pos, mouse_down, keys_pressed)
         
         render.handle_events()
-        tps_clock.tick(TPS)
+
+        target_time = loop_start_time + SPT * (render.average_running_tps / TPS)
+        current_time = time.perf_counter()
+
+        while current_time < target_time:
+            time.sleep((target_time - current_time) * 0.9)
+            current_time = time.perf_counter()
+
+        render.update_game_loop_duration(current_time - loop_start_time)
 
 def render_loop():
     """
@@ -570,13 +620,23 @@ def render_loop():
     """
     global running, render, MainMenu, World
     while running:
+        loop_start_time = time.perf_counter()
+
         if MainMenu.enabled:
             MainMenu.display()
         else:
             World.display()
 
         render.display()
-        fps_clock.tick(FPS)
+
+        target_time = loop_start_time + SPF * (render.average_running_fps / FPS)
+        current_time = time.perf_counter()
+
+        while current_time < target_time:
+            time.sleep((target_time - current_time) * 0.9)
+            current_time = time.perf_counter()
+            
+        render.update_render_loop_duration(current_time - loop_start_time)
 
 if __name__ == "__main__":
     render_thread = threading.Thread(target=render_loop)
