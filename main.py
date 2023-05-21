@@ -573,11 +573,11 @@ def render_loop():
         fps_clock.tick(FPS)
 
 if __name__ == "__main__":
-    game_thread = threading.Thread(target=game_logic)
-    game_thread.start()
+    render_thread = threading.Thread(target=render_loop)
+    render_thread.start()
 
-    render_loop()
+    game_logic()
 
-    game_thread.join()
+    render_thread.join()
 
     pygame.quit()
