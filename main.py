@@ -548,6 +548,9 @@ World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (350, 180), (60, 
 running = True
 
 def game_logic():
+    """
+    Main game loop. Handles user inputs and gameplay computing. Run at a set TPS.
+    """
     global running, render, MainMenu, World
     while running:
         mouse_pos, mouse_down = render.get_mouse()
@@ -562,6 +565,9 @@ def game_logic():
         tps_clock.tick(TPS)
 
 def render_loop():
+    """
+    Render loop. Displays all objects on the screen at a set FPS.
+    """
     global running, render, MainMenu, World
     while running:
         if MainMenu.enabled:
