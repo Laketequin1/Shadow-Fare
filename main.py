@@ -156,7 +156,7 @@ class Render:
         tps_text = Font.debug.render(f"TPS: {tps:.1f}", True, (255, 255, 255))
         tps_text = render.scale_image(tps_text)
         tps_rect = tps_text.get_rect()
-        tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height))
+        tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height / self.HEIGHT_MULTIPLIER))
 
         self.blit(fps_text, fps_rect.topleft)
         self.blit(tps_text, tps_rect.topleft)
