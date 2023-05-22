@@ -5,7 +5,7 @@ settings = {
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
-            "FPS": 200,                   # [Int]    (Default: 200)    Limit rendering frames per second.
+            "FPS": 120,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1          # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
             }
 
@@ -101,10 +101,10 @@ class Render:
     
     queued_images = []
 
-    running_tps = np.array([TPS])
+    running_spt = np.array([SPT])
     average_running_tps = TPS
 
-    running_fps = np.array([FPS])
+    running_spf = np.array([SPF])
     average_running_fps = FPS
     
     def __init__(self, game_resolution):
@@ -123,6 +123,8 @@ class Render:
         
         self.WIDTH_MULTIPLIER = self.DISPLAY_WIDTH/GAME_WIDTH
         self.HEIGHT_MULTIPLIER = self.DISPLAY_HEIGHT/GAME_HEIGHT
+
+        self.DEBUG_DOT = self.DEBUG_DOT.convert()
     
     def blit(self, *image):
         """
@@ -165,7 +167,7 @@ class Render:
         fps_rect = fps_text.get_rect()
         fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
 
-        tps_text = Font.debug.render(f"TPS: {self.running_tps[0]:.1f}", True, (255, 255, 255))
+        tps_text = Font.debug.render(f"TPS: {self.average_running_tps:.1f}", True, (255, 255, 255))
         tps_text = render.scale_image(tps_text)
         tps_rect = tps_text.get_rect()
         tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height))
@@ -184,9 +186,9 @@ class Render:
             self.show_debug()
         
         for i, image in enumerate(self.queued_images):
-            self.screen.blit(*image)
+             self.screen.blit(*image)
             
-        pygame.display.update()
+        pygame.display.update() # Needs optimized
         self.queued_images = []
     
     def get_mouse(self):
@@ -246,10 +248,10 @@ class Render:
         Args:
             duration (float): The duration of the game loop iteration in seconds.
         """
-        self.running_tps = np.append(self.running_tps, 1/duration)
-        if len(self.running_tps) > 100:
-            self.running_tps = self.running_tps[1:]
-        self.average_running_tps = np.mean(self.running_tps)
+        self.running_spt = np.append(self.running_spt, duration)
+        if len(self.running_spt) > 100:
+            self.running_spt = self.running_spt[1:]
+        self.average_running_tps = 1 / np.mean(self.running_spt)
 
     def update_render_loop_duration(self, duration):
         """
@@ -258,10 +260,10 @@ class Render:
         Args:
             duration (float): The duration of the render loop iteration in seconds.
         """
-        self.running_fps = np.append(self.running_fps, 1/duration)
-        if len(self.running_fps) > min(FPS * 3, 1000):
-            self.running_fps = self.running_fps[1:]
-        self.average_running_fps = np.mean(self.running_fps)
+        self.running_spf = np.append(self.running_spf, duration)
+        if len(self.running_spf) > min(SPF * 3, 1000):
+            self.running_spf = self.running_spf[1:]
+        self.average_running_fps = 1 / np.mean(self.running_spf)
 
 
 render = Render((GAME_WIDTH, GAME_WIDTH))
@@ -499,7 +501,6 @@ class Button:
             font (pygame.font.Font): Used font of the button.
             callback (function): Function to execute when the button is clicked.
         """
-        # Assigning button attributes
         self.text = text
         self.render_pos = render.get_render_pos(pos)
         self.game_pos = pos
@@ -507,16 +508,13 @@ class Button:
         self.color = color
         self.callback = callback
         
-        # Create a surface for the button
         self.button_surface = pygame.Surface(self.size)
         self.button_surface.fill(self.color)
         
-        # Render the button's text onto the surface
         text = font.render(self.text, True, (255, 255, 255))
         text_rect = text.get_rect(center=(self.size[0]/2, self.size[1]/2))
         self.button_surface.blit(text, text_rect)
         
-        # Scale the button surface to match the screen resolution
         self.button_surface = render.scale_image(self.button_surface)
 
     def update(self, mouse_pos, mouse_down):
@@ -604,14 +602,16 @@ def game_logic():
             World.update(mouse_pos, mouse_down, keys_pressed)
         
         render.handle_events()
-
-        target_time = loop_start_time + SPT * (render.average_running_tps / TPS)
+        
+        # Get the average extra time the delay takes over its set TPS
+        delay_overflow_time = np.average(render.running_spt) - SPT
+        # Get time where loop finishes. Delay overflow time used to more accurately hit by accouting for the extra time
+        target_time = loop_start_time + SPT - delay_overflow_time * SPT * 1000
         current_time = time.perf_counter()
-
         while current_time < target_time:
+            # Sleep for most of the duration until target time, creating a partially busy delay loop
             time.sleep((target_time - current_time) * 0.9)
             current_time = time.perf_counter()
-
         render.update_game_loop_duration(current_time - loop_start_time)
 
 def render_loop():
@@ -624,18 +624,21 @@ def render_loop():
 
         if MainMenu.enabled:
             MainMenu.display()
+            pass
         else:
             World.display()
+            pass
 
         render.display()
 
-        target_time = loop_start_time + SPF * (render.average_running_fps / FPS)
+        # Get time where loop finishes. Delay overflow time not used as accuracy is less important
+        target_time = loop_start_time + SPF
         current_time = time.perf_counter()
-
         while current_time < target_time:
-            time.sleep((target_time - current_time) * 0.9)
+            # Sleep for most of the duration until target time, creating a partially busy delay loop
+            time.sleep((target_time - current_time) * 0.98)
             current_time = time.perf_counter()
-            
+        
         render.update_render_loop_duration(current_time - loop_start_time)
 
 if __name__ == "__main__":
