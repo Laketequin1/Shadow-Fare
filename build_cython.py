@@ -18,7 +18,7 @@ setup(
 )
 
 # Delete temp files
-os.remove(os.path.join("src", "hand.c"))
+os.remove(os.path.join("src", f"{input_file_name}.c"))
 shutil.rmtree("build")
 
 # Get the current directory
