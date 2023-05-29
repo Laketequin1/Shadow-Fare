@@ -1,11 +1,11 @@
 # ----- Settings -----
 settings = {
             "ShowDebug":True,             # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
-            "FPS": 120,                   # [Int]    (Default: 120)    Limit rendering frames per second.
+            "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1          # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
             }
 
@@ -172,8 +172,14 @@ class Render:
         tps_rect = tps_text.get_rect()
         tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height))
 
+        machine_text = Font.debug.render(f"Machine: {os.uname().machine}", True, (255, 255, 255))
+        machine_text = render.scale_image(machine_text)
+        machine_rect = machine_text.get_rect()
+        machine_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + machine_rect.height * 2))
+
         self.blit(fps_text, fps_rect.topleft)
         self.blit(tps_text, tps_rect.topleft)
+        self.blit(machine_text, machine_rect.topleft)
         self.blit(self.DEBUG_DOT, (self.DISPLAY_WIDTH / 2 - self.DEBUG_DOT.get_width() / 2, self.DISPLAY_HEIGHT / 2 - self.DEBUG_DOT.get_height() / 2))
     
     def display(self):
