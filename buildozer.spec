@@ -13,7 +13,7 @@ package.domain = org.test
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,so,ttf
+source.include_exts = py,png,jpg,kv,atlas,ttf
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
@@ -22,7 +22,7 @@ source.include_exts = py,png,jpg,kv,atlas,so,ttf
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = testing, build_src
+source.exclude_dirs = testing
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'

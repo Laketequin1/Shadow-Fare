@@ -1,7 +1,7 @@
 # ----- Settings -----
 settings = {
             "ShowDebug":True,             # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
@@ -12,7 +12,6 @@ settings = {
 # ----- Setup ------
 import pygame, os, sys, random, math, time, threading
 import numpy as np
-from src.hand import calculate_hand_position
 
 pygame.init()
 
@@ -42,12 +41,12 @@ GAME_HEIGHT = 1080
 class Font:
     menu = pygame.font.SysFont(None, 100)
     symbol = pygame.font.SysFont(None, 80)
-    debug = pygame.font.Font("fonts/RobotoMono.ttf", 50)
+    debug = pygame.font.Font(os.path.abspath("fonts/RobotoMono.ttf"), 50)
         
         
 # ----- Variables -----
 
-# ----- Function ------
+# ----- Functions ------
 def exit():
     """Exits the server and game."""
     global running
@@ -65,6 +64,8 @@ def load_image(path, size = None, transparent = False):
     Returns:
         pygame.Surface: A pygame surface of the image.
     """
+    path = os.path.abspath(path)
+
     if transparent:
         image = pygame.image.load(path)
     else:
@@ -84,9 +85,35 @@ def load_images(paths, size = None, transparent = False):
         
     Returns:
         list: A list of loaded images.
-    """        
+    """
     return [load_image(path, size, transparent) for path in paths]
-        
+
+def calculate_hand_position(BODY_RADIUS, HAND_RADIUS, angle_offset, render_center_pos, game_center_pos, mouse_pos):
+    # Calculate the distance between the mouse position and the render center position
+    distance_x = mouse_pos[0] - render_center_pos[0]
+    distance_y = mouse_pos[1] - render_center_pos[1]
+
+    # Calculate the distance to the mouse position using the oval equation
+    distance_to_mouse = math.sqrt(distance_x * distance_x / (BODY_RADIUS[0] * BODY_RADIUS[0]) + distance_y * distance_y / (BODY_RADIUS[1] * BODY_RADIUS[1]))
+
+    # Normalize the distance to get the direction vector
+    normalized_distance_x = distance_x / (BODY_RADIUS[0] * distance_to_mouse)
+    normalized_distance_y = distance_y / (BODY_RADIUS[1] * distance_to_mouse)
+
+    # Calculate the angle based on the normalized direction vector and the angle offset
+    angle = math.atan2(normalized_distance_y, normalized_distance_x) + angle_offset
+
+    # Calculate the cosine and sine of the angle
+    cos_angle = math.cos(angle)
+    sin_angle = math.sin(angle)
+
+    # Calculate the position of the hand based on the game center position, body radius, hand radius, and angle
+    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle - HAND_RADIUS[0]
+    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle - HAND_RADIUS[1]
+
+    # Return the calculated hand position
+    return (hand_pos_x, hand_pos_y)
+
 # ----- Class -----
 class Render:
     info = pygame.display.Info()
@@ -170,12 +197,12 @@ class Render:
         tps_text = Font.debug.render(f"TPS: {self.average_running_tps:.1f}", True, (255, 255, 255))
         tps_text = render.scale_image(tps_text)
         tps_rect = tps_text.get_rect()
-        tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height))
+        tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height / render.HEIGHT_MULTIPLIER))
 
         machine_text = Font.debug.render(f"Machine: {os.uname().machine}", True, (255, 255, 255))
         machine_text = render.scale_image(machine_text)
         machine_rect = machine_text.get_rect()
-        machine_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + machine_rect.height * 2))
+        machine_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 30 + machine_rect.height * 2 / render.HEIGHT_MULTIPLIER))
 
         self.blit(fps_text, fps_rect.topleft)
         self.blit(tps_text, tps_rect.topleft)
@@ -648,11 +675,11 @@ def render_loop():
         render.update_render_loop_duration(current_time - loop_start_time)
 
 if __name__ == "__main__":
-    render_thread = threading.Thread(target=render_loop)
-    render_thread.start()
+    game_logic = threading.Thread(target=game_logic)
+    game_logic.start()
 
-    game_logic()
+    render_loop()
 
-    render_thread.join()
+    game_logic.join()
 
     pygame.quit()
