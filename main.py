@@ -1,17 +1,23 @@
 # ----- Settings -----
 settings = {
             "ShowDebug":True,             # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
-            "SpeedMultiplier": 1          # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
+            "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
+            "AndroidBuild": True          # [Bool]   (Default: False)  Changes some sections to work for android.
             }
+
+if settings["AndroidBuild"]:
+    settings["NoFullscreen"] = False
+
 
 # ----- Setup ------
 import pygame, os, sys, random, math, time, threading
 import numpy as np
+from pygame import gfxdraw
 
 pygame.init()
 
@@ -45,6 +51,7 @@ class Font:
         
         
 # ----- Variables -----
+
 
 # ----- Functions ------
 def exit():
@@ -127,6 +134,7 @@ class Render:
     DEBUG_DOT.fill((255, 0, 0))
     
     queued_images = []
+    finger_positions = {}
 
     running_spt = np.array([SPT])
     average_running_tps = TPS
@@ -143,6 +151,11 @@ class Render:
         """
         if os.name == "posix" and not settings["NoFullscreen"]:
             self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN)
+            if settings["AndroidBuild"]:
+                self.info = pygame.display.Info()
+                self.DISPLAY_WIDTH = self.info.current_w * settings["DisplayWidthMultiplier"]
+                self.DISPLAY_HEIGHT = self.info.current_h * settings["DisplayHeightMultiplier"]
+                self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN)
         else:
             self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME)
         pygame.display.set_caption("Shadow Fare")
@@ -179,7 +192,7 @@ class Render:
         """
         Handles events and updates the display.
         """
-        for event in pygame.event.get():
+        for event in pygame.event.get(exclude=[pygame.FINGERDOWN, pygame.FINGERMOTION, pygame.FINGERUP]):
             if event.type == pygame.QUIT:
                 exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
@@ -233,6 +246,22 @@ class Render:
         """
         return pygame.mouse.get_pos(), pygame.mouse.get_pressed()
     
+    def get_fingers(self):
+        """
+        Gets the finger positions.
+
+        Returns:
+            tuple: A tuple containing the finger positions.
+        """
+        for event in pygame.event.get(eventtype=[pygame.FINGERDOWN, pygame.FINGERMOTION, pygame.FINGERUP]):
+            if event.type == pygame.FINGERDOWN or event.type == pygame.FINGERMOTION:
+                finger_x, finger_y = event.x, event.y
+                self.finger_positions[event.finger_id] = (finger_x, finger_y)
+            elif event.type == pygame.FINGERUP:
+                del self.finger_positions[event.finger_id]
+        print(self.finger_positions.values())
+        return self.finger_positions.values()
+
     def get_keys(self):
         """
         Gets the keyboard button states.
@@ -333,6 +362,7 @@ class Sprite:
 
 
 class Scene:
+    mobile_buttons = {}
     buttons = []
     objects = []
     
@@ -345,6 +375,17 @@ class Scene:
             button (Button): A Button instance to be added.
         """
         cls.buttons.append(button)
+
+    @classmethod
+    def add_mobile_button(cls, name, mobile_button):
+        """
+        A class method which adds a mobile button to the dict of mobile buttons in the Scene class.
+
+        Args:
+            name (String): The name of the button in the list.
+            mobile_button (MobileButton): A MobileButton instance to be added.
+        """
+        cls.mobile_buttons[name] = mobile_button
     
     @classmethod
     def add_object(cls, object):
@@ -357,8 +398,9 @@ class Scene:
         cls.objects.append(object)
         
     @classmethod
-    def update_buttons(cls, mouse_pos, mouse_down):        
-        """Updates the Buttons.
+    def update_buttons(cls, mouse_pos, mouse_down):
+        """
+        Updates the Buttons.
 
         Args:
             mouse_pos (tuple): Current mouse position.
@@ -366,6 +408,21 @@ class Scene:
         """
         for button in cls.buttons:
             button.update(mouse_pos, mouse_down)
+
+    @classmethod
+    def update_mobile_buttons(cls, finger_positions):
+        """
+        Updates the mobile Buttons, and returns a dict of pressed buttons.
+
+        Args:
+            finger_positions (tuple): A list of finger positions..
+        """
+        pressed_buttons = {}
+
+        for button_name, mobile_button in cls.mobile_buttons.items():
+            pressed_buttons[button_name] = mobile_button.update(finger_positions)
+
+        return pressed_buttons
 
 
 class Hand:
@@ -482,10 +539,8 @@ class Object:
 
 
 class World(Scene):
-    buttons = []
-
     @classmethod
-    def update(cls, mouse_pos, mouse_down, keys_pressed):
+    def update(cls, mouse_pos, mouse_down, keys_pressed, finger_positions):
         """
         A class method that updates all events in the World and then displays them.
 
@@ -494,6 +549,11 @@ class World(Scene):
             mouse_down (tuple): Current state of the mouse buttons.
         """
         cls.update_buttons(mouse_pos, mouse_down)
+        if settings["AndroidBuild"]:
+            movement_arrows = cls.update_mobile_buttons(finger_positions)
+            print("Dict:", movement_arrows)
+        else:
+            movement_arrows = {"Left": False, "Right": False, "Up": False, "Down": False}
         Player.update(mouse_pos, mouse_down, keys_pressed)
 
     @classmethod
@@ -520,6 +580,9 @@ class World(Scene):
         """        
         for button in cls.buttons:
             button.display()
+
+        for mobile_button in cls.mobile_buttons.values():
+            mobile_button.display()
             
 
 class Button:
@@ -540,14 +603,19 @@ class Button:
         self.size = size
         self.color = color
         self.callback = callback
+
+        self.button_surface = pygame.Surface(self.size, pygame.SRCALPHA)
+        self.button_surface.fill((0, 0, 0, 0))
         
-        self.button_surface = pygame.Surface(self.size)
-        self.button_surface.fill(self.color)
+        border_radius = 15
+        
+        # Draw rounded rectangle
+        pygame.draw.rect(self.button_surface, self.color, (0, 0, self.size[0], self.size[1]), border_radius=border_radius)
         
         text = font.render(self.text, True, (255, 255, 255))
         text_rect = text.get_rect(center=(self.size[0]/2, self.size[1]/2))
         self.button_surface.blit(text, text_rect)
-        
+
         self.button_surface = render.scale_image(self.button_surface)
 
     def update(self, mouse_pos, mouse_down):
@@ -565,6 +633,19 @@ class Button:
     def display(self):
         """Displays the button on the screen."""
         render.blit(self.button_surface, self.render_pos)
+
+
+class MobileButton(Button):
+    def __init__(self, text, pos, size, color, font):
+        super().__init__(text, pos, size, color, font, None)
+
+    def update(self, finger_positions):
+        # Check if any finger is on the button
+        for finger_pos in finger_positions:
+            if pygame.Rect(*self.render_pos, *self.button_surface.get_size()).collidepoint(finger_pos):
+                print("Button Clicked!")
+                return True
+        return False
 
 
 class MainMenu(Scene):
@@ -587,7 +668,7 @@ class MainMenu(Scene):
         cls.enabled = False
     
     @classmethod
-    def update(cls, mouse_pos, mouse_down):        
+    def update(cls, mouse_pos, mouse_down):
         """Updates the MainMenu.
 
         Args:
@@ -606,7 +687,7 @@ class MainMenu(Scene):
                 
 
 # World Scene Overlay
-MainMenu.add_button(Button("Play", (GAME_WIDTH / 2 - 400, 450), (800, 180), (255, 0, 0), Font.menu, MainMenu.toggle)) # Play Button
+MainMenu.add_button(Button("Play", (GAME_WIDTH / 2 - 400, 400), (800, 180), (255, 0, 0), Font.menu, MainMenu.toggle)) # Play Button
 MainMenu.add_button(Button("Exit", (GAME_WIDTH / 2 - 400, 650), (800, 180), (255, 0, 0), Font.menu, exit)) # Exit Button
 
 # Menu Scene Overlay
@@ -615,6 +696,11 @@ World.add_button(Button("ll", (10, 10), (100, 100), (255, 0, 0), Font.symbol, Ma
 # World Scene Objects
 World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (0, 0)))
 World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (350, 180), (60, 60)))
+
+# Mobile Buttons
+if settings["AndroidBuild"]:
+    World.add_mobile_button("up", MobileButton("Up", (GAME_WIDTH / 2 - 400, 400), (800, 180), (255, 0, 0), Font.menu))
+    World.add_mobile_button("down", MobileButton("Dn", (GAME_WIDTH / 2 - 400, 650), (800, 180), (255, 0, 0), Font.menu))
 
 running = True
 
@@ -629,10 +715,15 @@ def game_logic():
         mouse_pos, mouse_down = render.get_mouse()
         keys_pressed = render.get_keys()
 
+        if settings["AndroidBuild"]:
+            finger_positions = render.get_fingers()
+        else:
+            finger_positions = None
+
         if MainMenu.enabled:
             MainMenu.update(mouse_pos, mouse_down)
         else:
-            World.update(mouse_pos, mouse_down, keys_pressed)
+            World.update(mouse_pos, mouse_down, keys_pressed, finger_positions)
         
         render.handle_events()
         
