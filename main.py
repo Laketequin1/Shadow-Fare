@@ -48,6 +48,7 @@ class Font:
     menu = pygame.font.SysFont(None, 100)
     symbol = pygame.font.SysFont(None, 80)
     debug = pygame.font.Font(os.path.abspath("fonts/RobotoMono.ttf"), 50)
+    arrows = pygame.font.Font(os.path.abspath("fonts/seguisym.ttf"), 100)
         
         
 # ----- Variables -----
@@ -255,11 +256,11 @@ class Render:
         """
         for event in pygame.event.get(eventtype=[pygame.FINGERDOWN, pygame.FINGERMOTION, pygame.FINGERUP]):
             if event.type == pygame.FINGERDOWN or event.type == pygame.FINGERMOTION:
-                finger_x, finger_y = event.x, event.y
+                finger_x, finger_y = event.x * self.DISPLAY_WIDTH, event.y * self.DISPLAY_HEIGHT
+                
                 self.finger_positions[event.finger_id] = (finger_x, finger_y)
             elif event.type == pygame.FINGERUP:
                 del self.finger_positions[event.finger_id]
-        print(self.finger_positions.values())
         return self.finger_positions.values()
 
     def get_keys(self):
@@ -468,7 +469,7 @@ class Player:
     last_frame_time = pygame.time.get_ticks()
 
     @classmethod
-    def update(cls, mouse_pos, mouse_down, keys_pressed: pygame.key.ScancodeWrapper):
+    def update(cls, mouse_pos, mouse_down, keys_pressed: pygame.key.ScancodeWrapper, movement_arrows):
         """
         Updates the player and handles movement.
 
@@ -479,13 +480,13 @@ class Player:
         """
         # Calculate the player's movement vector
         move_vector = [0, 0]
-        if keys_pressed[pygame.K_w]:
+        if keys_pressed[pygame.K_w] or movement_arrows["up"] or movement_arrows["upleft"] or movement_arrows["upright"]:
             move_vector[1] -= cls.base_speed
-        if keys_pressed[pygame.K_a]:
+        if keys_pressed[pygame.K_a] or movement_arrows["left"] or movement_arrows["downleft"] or movement_arrows["upleft"]:
             move_vector[0] -= cls.base_speed
-        if keys_pressed[pygame.K_s]:
+        if keys_pressed[pygame.K_s] or movement_arrows["down"] or movement_arrows["downleft"] or movement_arrows["downright"]:
             move_vector[1] += cls.base_speed
-        if keys_pressed[pygame.K_d]:
+        if keys_pressed[pygame.K_d] or movement_arrows["right"] or movement_arrows["downright"] or movement_arrows["upright"]:
             move_vector[0] += cls.base_speed
 
         # Normalize the movement vector if it is diagonal
@@ -551,10 +552,9 @@ class World(Scene):
         cls.update_buttons(mouse_pos, mouse_down)
         if settings["AndroidBuild"]:
             movement_arrows = cls.update_mobile_buttons(finger_positions)
-            print("Dict:", movement_arrows)
         else:
-            movement_arrows = {"Left": False, "Right": False, "Up": False, "Down": False}
-        Player.update(mouse_pos, mouse_down, keys_pressed)
+            movement_arrows = {"left": False, "right": False, "up": False, "down": False, "upleft": False, "upright": False, "downleft": False, "downright": False}
+        Player.update(mouse_pos, mouse_down, keys_pressed, movement_arrows)
 
     @classmethod
     def display(cls):
@@ -607,7 +607,7 @@ class Button:
         self.button_surface = pygame.Surface(self.size, pygame.SRCALPHA)
         self.button_surface.fill((0, 0, 0, 0))
         
-        border_radius = 15
+        border_radius = 5
         
         # Draw rounded rectangle
         pygame.draw.rect(self.button_surface, self.color, (0, 0, self.size[0], self.size[1]), border_radius=border_radius)
@@ -643,7 +643,6 @@ class MobileButton(Button):
         # Check if any finger is on the button
         for finger_pos in finger_positions:
             if pygame.Rect(*self.render_pos, *self.button_surface.get_size()).collidepoint(finger_pos):
-                print("Button Clicked!")
                 return True
         return False
 
@@ -699,8 +698,14 @@ World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (350, 180), (60, 
 
 # Mobile Buttons
 if settings["AndroidBuild"]:
-    World.add_mobile_button("up", MobileButton("Up", (GAME_WIDTH / 2 - 400, 400), (800, 180), (255, 0, 0), Font.menu))
-    World.add_mobile_button("down", MobileButton("Dn", (GAME_WIDTH / 2 - 400, 650), (800, 180), (255, 0, 0), Font.menu))
+    World.add_mobile_button("up", MobileButton("⇑", (250, GAME_HEIGHT - 500), (150, 150), (255, 0, 0), Font.arrows))
+    World.add_mobile_button("down", MobileButton("⇓", (250, GAME_HEIGHT - 200), (150, 150), (255, 0, 0), Font.arrows))
+    World.add_mobile_button("left", MobileButton("⇐", (100, GAME_HEIGHT - 350), (150, 150), (255, 0, 0), Font.arrows))
+    World.add_mobile_button("right", MobileButton("⇒", (400, GAME_HEIGHT - 350), (150, 150), (255, 0, 0), Font.arrows))
+    World.add_mobile_button("upleft", MobileButton("⇖", (100, GAME_HEIGHT - 500), (150, 150), (255, 0, 0), Font.arrows))
+    World.add_mobile_button("upright", MobileButton("⇗", (400, GAME_HEIGHT - 500), (150, 150), (255, 0, 0), Font.arrows))
+    World.add_mobile_button("downleft", MobileButton("⇙", (100, GAME_HEIGHT - 200), (150, 150), (255, 0, 0), Font.arrows))
+    World.add_mobile_button("downright", MobileButton("⇘", (400, GAME_HEIGHT - 200), (150, 150), (255, 0, 0), Font.arrows)) # only have up down left right, stretch them tho
 
 running = True
 
