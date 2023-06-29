@@ -514,10 +514,6 @@ class Player:
             cls.last_frame_time = current_time
             cls.current_frame = (cls.current_frame + 1) % len(Sprite.Player.Body.frames)
         render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
-        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
-        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
-        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
-        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
 
 
 class Object:
