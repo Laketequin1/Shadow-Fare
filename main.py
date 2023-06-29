@@ -1,6 +1,6 @@
 # ----- Settings -----
 settings = {
-            "ShowDebug":True,             # [Bool]   (Default: False)  Shows debug and stat information like FPS.
+            "ShowDebug":True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
             "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
@@ -132,7 +132,7 @@ class Render:
 
     # Debugging
     DEBUG_DOT = pygame.Surface((6, 6))
-    DEBUG_DOT.fill((255, 0, 0))
+    DEBUG_DOT.fill(Color.RED1)
     
     queued_images = []
     finger_positions = {}
@@ -151,14 +151,15 @@ class Render:
             game_resolution (tuple [int, int]): Game resolution.
         """
         if os.name == "posix" and not settings["NoFullscreen"]:
-            self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN)
+            self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN | pygame.HWSURFACE | pygame.DOUBLEBUF)
             if settings["AndroidBuild"]:
                 self.info = pygame.display.Info()
                 self.DISPLAY_WIDTH = self.info.current_w * settings["DisplayWidthMultiplier"]
                 self.DISPLAY_HEIGHT = self.info.current_h * settings["DisplayHeightMultiplier"]
-                self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN)
+                self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN | pygame.HWSURFACE | pygame.DOUBLEBUF)
         else:
-            self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME)
+            self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF)
+        
         pygame.display.set_caption("Shadow Fare")
         self.game_resolution = game_resolution
         
@@ -203,17 +204,17 @@ class Render:
         """
         Blits game statistics like FPS to the screen. Useful for debugging.
         """
-        fps_text = Font.debug.render(f"FPS: {self.average_running_fps:.1f}", True, (255, 255, 255))
+        fps_text = Font.debug.render(f"FPS: {self.average_running_fps:.1f}", False, Color.BLACK).convert()
         fps_text = render.scale_image(fps_text)
         fps_rect = fps_text.get_rect()
         fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
 
-        tps_text = Font.debug.render(f"TPS: {self.average_running_tps:.1f}", True, (255, 255, 255))
+        tps_text = Font.debug.render(f"TPS: {self.average_running_tps:.1f}", False, Color.BLACK).convert()
         tps_text = render.scale_image(tps_text)
         tps_rect = tps_text.get_rect()
         tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height / render.HEIGHT_MULTIPLIER))
 
-        machine_text = Font.debug.render(f"Machine: {os.uname().machine}", True, (255, 255, 255))
+        machine_text = Font.debug.render(f"Machine: {os.uname().machine}", False, Color.BLACK).convert()
         machine_text = render.scale_image(machine_text)
         machine_rect = machine_text.get_rect()
         machine_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 30 + machine_rect.height * 2 / render.HEIGHT_MULTIPLIER))
@@ -231,11 +232,13 @@ class Render:
         
         if settings["ShowDebug"]:
             self.show_debug()
-        
+
         for i, image in enumerate(self.queued_images):
-             self.screen.blit(*image)
+            image = list(image)
+            image[1] = (round(image[1][0]), round(image[1][1]))
+            self.screen.blit(*image)
             
-        pygame.display.update() # Needs optimized
+        pygame.display.update()
         self.queued_images = []
     
     def get_mouse(self):
@@ -480,13 +483,13 @@ class Player:
         """
         # Calculate the player's movement vector
         move_vector = [0, 0]
-        if keys_pressed[pygame.K_w] or movement_arrows["up"] or movement_arrows["upleft"] or movement_arrows["upright"]:
+        if keys_pressed[pygame.K_w] or movement_arrows["up"]:
             move_vector[1] -= cls.base_speed
-        if keys_pressed[pygame.K_a] or movement_arrows["left"] or movement_arrows["downleft"] or movement_arrows["upleft"]:
+        if keys_pressed[pygame.K_a] or movement_arrows["left"]:
             move_vector[0] -= cls.base_speed
-        if keys_pressed[pygame.K_s] or movement_arrows["down"] or movement_arrows["downleft"] or movement_arrows["downright"]:
+        if keys_pressed[pygame.K_s] or movement_arrows["down"]:
             move_vector[1] += cls.base_speed
-        if keys_pressed[pygame.K_d] or movement_arrows["right"] or movement_arrows["downright"] or movement_arrows["upright"]:
+        if keys_pressed[pygame.K_d] or movement_arrows["right"]:
             move_vector[0] += cls.base_speed
 
         # Normalize the movement vector if it is diagonal
@@ -510,6 +513,10 @@ class Player:
         if current_time - cls.last_frame_time >= Sprite.Player.Body.frame_interval:
             cls.last_frame_time = current_time
             cls.current_frame = (cls.current_frame + 1) % len(Sprite.Player.Body.frames)
+        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
+        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
+        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
+        render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
         render.blit(Sprite.Player.Body.frames[cls.current_frame], cls.render_pos)
 
 
@@ -553,7 +560,7 @@ class World(Scene):
         if settings["AndroidBuild"]:
             movement_arrows = cls.update_mobile_buttons(finger_positions)
         else:
-            movement_arrows = {"left": False, "right": False, "up": False, "down": False, "upleft": False, "upright": False, "downleft": False, "downright": False}
+            movement_arrows = {"left": False, "right": False, "up": False, "down": False}
         Player.update(mouse_pos, mouse_down, keys_pressed, movement_arrows)
 
     @classmethod
@@ -607,16 +614,21 @@ class Button:
         self.button_surface = pygame.Surface(self.size, pygame.SRCALPHA)
         self.button_surface.fill((0, 0, 0, 0))
         
-        border_radius = 5
+        if not settings["AndroidBuild"]:
+            border_radius = 30
+        else:
+            border_radius = 0
         
         # Draw rounded rectangle
         pygame.draw.rect(self.button_surface, self.color, (0, 0, self.size[0], self.size[1]), border_radius=border_radius)
         
-        text = font.render(self.text, True, (255, 255, 255))
+        text = font.render(self.text, True, Color.WHITE)
         text_rect = text.get_rect(center=(self.size[0]/2, self.size[1]/2))
         self.button_surface.blit(text, text_rect)
 
         self.button_surface = render.scale_image(self.button_surface)
+        if settings["AndroidBuild"]:
+            self.button_surface = self.button_surface.convert()
 
     def update(self, mouse_pos, mouse_down):
         """
@@ -686,11 +698,11 @@ class MainMenu(Scene):
                 
 
 # World Scene Overlay
-MainMenu.add_button(Button("Play", (GAME_WIDTH / 2 - 400, 400), (800, 180), (255, 0, 0), Font.menu, MainMenu.toggle)) # Play Button
-MainMenu.add_button(Button("Exit", (GAME_WIDTH / 2 - 400, 650), (800, 180), (255, 0, 0), Font.menu, exit)) # Exit Button
+MainMenu.add_button(Button("Play", (GAME_WIDTH / 2 - 400, 400), (800, 180), Color.RED1, Font.menu, MainMenu.toggle)) # Play Button
+MainMenu.add_button(Button("Exit", (GAME_WIDTH / 2 - 400, 650), (800, 180), Color.RED1, Font.menu, exit)) # Exit Button
 
 # Menu Scene Overlay
-World.add_button(Button("ll", (10, 10), (100, 100), (255, 0, 0), Font.symbol, MainMenu.toggle)) # Pause Button
+World.add_button(Button("ll", (10, 10), (100, 100), Color.RED1, Font.symbol, MainMenu.toggle)) # Pause Button
 
 # World Scene Objects
 World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (0, 0)))
@@ -698,14 +710,11 @@ World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (350, 180), (60, 
 
 # Mobile Buttons
 if settings["AndroidBuild"]:
-    World.add_mobile_button("up", MobileButton("⇑", (250, GAME_HEIGHT - 500), (150, 150), (255, 0, 0), Font.arrows))
-    World.add_mobile_button("down", MobileButton("⇓", (250, GAME_HEIGHT - 200), (150, 150), (255, 0, 0), Font.arrows))
-    World.add_mobile_button("left", MobileButton("⇐", (100, GAME_HEIGHT - 350), (150, 150), (255, 0, 0), Font.arrows))
-    World.add_mobile_button("right", MobileButton("⇒", (400, GAME_HEIGHT - 350), (150, 150), (255, 0, 0), Font.arrows))
-    World.add_mobile_button("upleft", MobileButton("⇖", (100, GAME_HEIGHT - 500), (150, 150), (255, 0, 0), Font.arrows))
-    World.add_mobile_button("upright", MobileButton("⇗", (400, GAME_HEIGHT - 500), (150, 150), (255, 0, 0), Font.arrows))
-    World.add_mobile_button("downleft", MobileButton("⇙", (100, GAME_HEIGHT - 200), (150, 150), (255, 0, 0), Font.arrows))
-    World.add_mobile_button("downright", MobileButton("⇘", (400, GAME_HEIGHT - 200), (150, 150), (255, 0, 0), Font.arrows)) # only have up down left right, stretch them tho
+    #pass
+    World.add_mobile_button("up", MobileButton("⇑", (100, GAME_HEIGHT - 500), (450, 150), Color.RED1, Font.arrows))
+    World.add_mobile_button("down", MobileButton("⇓", (100, GAME_HEIGHT - 200), (450, 150), Color.RED1, Font.arrows))
+    World.add_mobile_button("left", MobileButton("⇐", (100, GAME_HEIGHT - 500), (150, 450), Color.RED1, Font.arrows))
+    World.add_mobile_button("right", MobileButton("⇒", (400, GAME_HEIGHT - 500), (150, 450), Color.RED1, Font.arrows))
 
 running = True
 
@@ -753,10 +762,8 @@ def render_loop():
 
         if MainMenu.enabled:
             MainMenu.display()
-            pass
         else:
             World.display()
-            pass
 
         render.display()
 
