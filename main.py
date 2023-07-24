@@ -7,7 +7,7 @@ settings = {
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
-            "AndroidBuild": True          # [Bool]   (Default: False)  Changes some sections to work for android.
+            "AndroidBuild": False          # [Bool]   (Default: False)  Changes some sections to work for android.
             }
 
 if settings["AndroidBuild"]:
@@ -17,12 +17,14 @@ if settings["AndroidBuild"]:
 # ----- Setup ------
 import pygame, os, sys, random, math, time, threading
 import numpy as np
-from pygame import gfxdraw
 
 pygame.init()
 
 # Imports lots of colors as RGB
 from src import color as Color
+
+if settings["ShowDebug"]:
+    from src.tools import DClock
 
 # Clear screen
 if os.name == "posix":
@@ -133,6 +135,7 @@ class Render:
     # Debugging
     DEBUG_DOT = pygame.Surface((6, 6))
     DEBUG_DOT.fill(Color.RED1)
+    previous_show_debug_time = -1
     
     queued_images = []
     finger_positions = {}
@@ -200,28 +203,29 @@ class Render:
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 exit()
     
-    def show_debug(self):
+    def show_debug(self, compute = True):
         """
         Blits game statistics like FPS to the screen. Useful for debugging.
         """
-        fps_text = Font.debug.render(f"FPS: {self.average_running_fps:.1f}", False, Color.BLACK).convert()
-        fps_text = render.scale_image(fps_text)
-        fps_rect = fps_text.get_rect()
-        fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
+        if compute:
+            self.fps_text = Font.debug.render(f"FPS: {self.average_running_fps:.1f}", True, Color.BLACK, Color.WHITE).convert()
+            self.fps_text = render.scale_image(self.fps_text)
+            self.fps_rect = self.fps_text.get_rect()
+            self.fps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 10))
 
-        tps_text = Font.debug.render(f"TPS: {self.average_running_tps:.1f}", False, Color.BLACK).convert()
-        tps_text = render.scale_image(tps_text)
-        tps_rect = tps_text.get_rect()
-        tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + fps_rect.height / render.HEIGHT_MULTIPLIER))
+            self.tps_text = Font.debug.render(f"TPS: {self.average_running_tps:.1f}", True, Color.BLACK, Color.WHITE).convert()
+            self.tps_text = render.scale_image(self.tps_text)
+            self.tps_rect = self.tps_text.get_rect()
+            self.tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + self.fps_rect.height / render.HEIGHT_MULTIPLIER))
 
-        machine_text = Font.debug.render(f"Machine: {os.uname().machine}", False, Color.BLACK).convert()
-        machine_text = render.scale_image(machine_text)
-        machine_rect = machine_text.get_rect()
-        machine_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 30 + machine_rect.height * 2 / render.HEIGHT_MULTIPLIER))
+            self.machine_text = Font.debug.render(f"Machine: {os.uname().machine}", True, Color.BLACK, Color.WHITE).convert()
+            self.machine_text = render.scale_image(self.machine_text)
+            self.machine_rect = self.machine_text.get_rect()
+            self.machine_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 30 + self.machine_rect.height * 2 / render.HEIGHT_MULTIPLIER))
 
-        self.blit(fps_text, fps_rect.topleft)
-        self.blit(tps_text, tps_rect.topleft)
-        self.blit(machine_text, machine_rect.topleft)
+        self.blit(self.fps_text, self.fps_rect.topleft)
+        self.blit(self.tps_text, self.tps_rect.topleft)
+        self.blit(self.machine_text, self.machine_rect.topleft)
         self.blit(self.DEBUG_DOT, (self.DISPLAY_WIDTH / 2 - self.DEBUG_DOT.get_width() / 2, self.DISPLAY_HEIGHT / 2 - self.DEBUG_DOT.get_height() / 2))
     
     def display(self):
@@ -229,16 +233,25 @@ class Render:
         Blits all queued images and updates the display.
         """
         self.screen.fill(self.BACKGROUND_COLOR)
-        
+        DClock.start("Debug")
+        current_time = time.time()
         if settings["ShowDebug"]:
-            self.show_debug()
+            if self.previous_show_debug_time + 0.5 < current_time:
+                self.previous_show_debug_time = time.time()
+                self.show_debug()
+            else:
+                self.show_debug(False)
 
+        DClock.finish("Debug", True)
+        DClock.start("BlitLoop")
         for i, image in enumerate(self.queued_images):
             image = list(image)
             image[1] = (round(image[1][0]), round(image[1][1]))
             self.screen.blit(*image)
-            
+        DClock.finish("BlitLoop", True)
+        DClock.start("Display")
         pygame.display.update()
+        DClock.finish("Display", True)
         self.queued_images = []
     
     def get_mouse(self):
@@ -355,14 +368,14 @@ class Sprite:
             class Background:
                 size = (GAME_WIDTH, GAME_HEIGHT)
                 transparent = False
-                image = load_image("images/UI/menu/Background.png", size)
+                image = load_image("images/UI/menu/Background.png", size, transparent)
     
     class Scenery:
         class Foilage:
             class Tree:
-                size = (300, 500)
-                transparent = False
-                frames = load_images(["images/scenery/foilage/tree/f0.png"], size)
+                size = (300, 300)
+                transparent = True
+                frames = load_images(["images/scenery/foilage/tree/f0.png"], size, transparent)
 
 
 class Scene:
