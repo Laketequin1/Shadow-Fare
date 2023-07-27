@@ -7,7 +7,7 @@ settings = {
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
-            "AndroidBuild": False          # [Bool]   (Default: False)  Changes some sections to work for android.
+            "AndroidBuild": True          # [Bool]   (Default: False)  Changes some sections to work for android.
             }
 
 if settings["AndroidBuild"]:
@@ -22,9 +22,6 @@ pygame.init()
 
 # Imports lots of colors as RGB
 from src import color as Color
-
-if settings["ShowDebug"]:
-    from src.tools import DClock
 
 # Clear screen
 if os.name == "posix":
@@ -163,6 +160,8 @@ class Render:
         else:
             self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF)
         
+        self.screen.set_alpha(None)
+
         pygame.display.set_caption("Shadow Fare")
         self.game_resolution = game_resolution
         
@@ -233,7 +232,6 @@ class Render:
         Blits all queued images and updates the display.
         """
         self.screen.fill(self.BACKGROUND_COLOR)
-        DClock.start("Debug")
         current_time = time.time()
         if settings["ShowDebug"]:
             if self.previous_show_debug_time + 0.5 < current_time:
@@ -242,16 +240,12 @@ class Render:
             else:
                 self.show_debug(False)
 
-        DClock.finish("Debug", True)
-        DClock.start("BlitLoop")
-        for i, image in enumerate(self.queued_images):
+        for image in self.queued_images:
             image = list(image)
             image[1] = (round(image[1][0]), round(image[1][1]))
             self.screen.blit(*image)
-        DClock.finish("BlitLoop", True)
-        DClock.start("Display")
+
         pygame.display.update()
-        DClock.finish("Display", True)
         self.queued_images = []
     
     def get_mouse(self):
