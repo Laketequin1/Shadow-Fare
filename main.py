@@ -533,6 +533,8 @@ class Bullet:
 
     def __init__(self, pos, angle, speed):
         self.pos = pos
+        self.pos[0] += Player.game_pos[0]
+        self.pos[1] += Player.game_pos[1]
         self.angle = angle
         self.speed = speed
         self.duration = 0
@@ -542,7 +544,7 @@ class Bullet:
 
     def display(self):
         print(render.get_render_pos((self.pos[0] - Player.game_pos[0] + GAME_WIDTH / 2, self.pos[1] - Player.game_pos[1] + GAME_HEIGHT / 2)))
-        render.blit(self.IMAGE, render.get_render_pos((self.pos[0] - Player.game_pos[0] + GAME_WIDTH / 2, self.pos[1] - Player.game_pos[1] + GAME_HEIGHT / 2)))
+        render.blit(self.IMAGE, render.get_render_pos((self.pos[0] - Player.game_pos[0], self.pos[1] - Player.game_pos[1])))
 
 
 class Gun:
@@ -570,7 +572,7 @@ class Gun:
 
     def fire(self, mousedown):
         if self.cooldown <= 0 and mousedown:
-            self.bullets.append(Bullet(self.pos, self.angle, 5))
+            self.bullets.append(Bullet([self.pos[0] - 2, self.pos[1]], self.angle, 5))
             self.cooldown = 0
         else:
             self.cooldown -= 1
