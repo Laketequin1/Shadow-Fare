@@ -7,7 +7,7 @@ settings = {
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
-            "AndroidBuild": True          # [Bool]   (Default: False)  Changes some sections to work for android.
+            "AndroidBuild": False          # [Bool]   (Default: False)  Changes some sections to work for android.
             }
 
 if settings["AndroidBuild"]:
@@ -97,8 +97,8 @@ def load_images(paths, size = None, transparent = False):
 
 def calculate_hand_position(BODY_RADIUS, HAND_RADIUS, angle_offset, render_center_pos, game_center_pos, mouse_pos):
     # Calculate the distance between the mouse position and the render center position
-    distance_x = mouse_pos[0] - render_center_pos[0]
-    distance_y = mouse_pos[1] - render_center_pos[1]
+    distance_x = mouse_pos[0] - render_center_pos[0] + 0.1
+    distance_y = mouse_pos[1] - render_center_pos[1] + 0.1
 
     # Calculate the distance to the mouse position using the oval equation
     distance_to_mouse = math.sqrt(distance_x * distance_x / (BODY_RADIUS[0] * BODY_RADIUS[0]) + distance_y * distance_y / (BODY_RADIUS[1] * BODY_RADIUS[1]))
@@ -117,9 +117,56 @@ def calculate_hand_position(BODY_RADIUS, HAND_RADIUS, angle_offset, render_cente
     # Calculate the position of the hand based on the game center position, body radius, hand radius, and angle
     hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle - HAND_RADIUS[0]
     hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle - HAND_RADIUS[1]
-
+    
     # Return the calculated hand position
     return (hand_pos_x, hand_pos_y)
+
+def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_pos, game_center_pos, mouse_pos):
+    # Calculate the distance between the mouse position and the render center position
+    distance_x = mouse_pos[0] - render_center_pos[0] + 0.01
+    distance_y = mouse_pos[1] - render_center_pos[1] + 0.01
+
+    # Calculate the distance to the mouse position using the oval equation
+    distance_to_mouse = math.sqrt(distance_x * distance_x / (BODY_RADIUS[0] * BODY_RADIUS[0]) + distance_y * distance_y / (BODY_RADIUS[1] * BODY_RADIUS[1]))
+
+    # Normalize the distance to get the direction vector
+    normalized_distance_x = distance_x / (BODY_RADIUS[0] * distance_to_mouse)
+    normalized_distance_y = distance_y / (BODY_RADIUS[1] * distance_to_mouse)
+
+    # Calculate the angle based on the normalized direction vector and the angle offset
+    angle = math.atan2(normalized_distance_y, normalized_distance_x) + angle_offset
+
+    # Calculate the cosine and sine of the angle
+    cos_angle = math.cos(angle)
+    sin_angle = math.sin(angle)
+
+    # Calculate the position of the hand based on the game center position, body radius, hand radius, and angle
+    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle
+    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle
+    
+    # Return the calculated hand position
+    return [hand_pos_x, hand_pos_y]
+
+def calculate_gun_angle(BODY_RADIUS, angle_offset, render_center_pos, mouse_pos):
+    # Calculate the distance between the mouse position and the render center position
+    distance_x = mouse_pos[0] - render_center_pos[0] + 0.1
+    distance_y = mouse_pos[1] - render_center_pos[1] + 0.1
+
+    # Calculate the distance to the mouse position using the oval equation
+    distance_to_mouse = math.sqrt(distance_x * distance_x / (BODY_RADIUS[0] * BODY_RADIUS[0]) + distance_y * distance_y / (BODY_RADIUS[1] * BODY_RADIUS[1]))
+
+    # Normalize the distance to get the direction vector
+    normalized_distance_x = distance_x / (BODY_RADIUS[0] * distance_to_mouse)
+    normalized_distance_y = distance_y / (BODY_RADIUS[1] * distance_to_mouse)
+
+    # Calculate the angle based on the normalized direction vector and the angle offset
+    angle = math.atan2(normalized_distance_x, normalized_distance_y) + angle_offset
+
+    # Normalize the angle to the range [0, 1]
+    normalized_angle = angle / (2 * math.pi)
+    
+    # Return the calculated normalized angle
+    return normalized_angle - 0.25
 
 # ----- Class -----
 class Render:
@@ -348,14 +395,23 @@ class Sprite:
             frame_interval = 150 # ms
             transperent = True
             frames = load_images([f"images/player/body/f{x}.png" for x in range(4)], size, transperent)
+
         class Hand:
             size = (30, 30)
             transparent = True
             image = load_image("images/player/hands/f0.png", size, transparent)
     
     class Guns:
-        class Shotgun:
-            frames = []
+        class Flintlock:
+            size = (80, 80)
+            transparent = True
+            image = load_image("images/guns/flintlock.png", size, transparent)
+
+    class Bullets:
+        class Flintlock:
+            transparent = True
+            size = (7, 7)
+            image = load_image("images/bullets/flintlock.png", size, transparent)
     
     class UI:
         class Menu:
@@ -470,11 +526,102 @@ class Hand:
         render.blit(Sprite.Player.Hand.image, render.get_render_pos(self.pos))
 
 
+class Bullet:
+    bullet_path = Sprite.Bullets.Flintlock
+    image_path = bullet_path.image
+    IMAGE = pygame.transform.smoothscale(image_path, (bullet_path.size[0] * render.WIDTH_MULTIPLIER, bullet_path.size[1] * render.HEIGHT_MULTIPLIER))
+
+    def __init__(self, pos, angle, speed):
+        self.pos = pos
+        self.angle = angle
+        self.speed = speed
+        self.duration = 0
+
+    def update(self):
+        pass
+
+    def display(self):
+        print(render.get_render_pos((self.pos[0] - Player.game_pos[0] + GAME_WIDTH / 2, self.pos[1] - Player.game_pos[1] + GAME_HEIGHT / 2)))
+        render.blit(self.IMAGE, render.get_render_pos((self.pos[0] - Player.game_pos[0] + GAME_WIDTH / 2, self.pos[1] - Player.game_pos[1] + GAME_HEIGHT / 2)))
+
+
+class Gun:
+    GAME_CENTER_POS = np.array([GAME_WIDTH / 2, GAME_HEIGHT / 2], dtype=np.double)
+    RENDER_CENTER_POS = np.array([render.DISPLAY_WIDTH / 2, render.DISPLAY_HEIGHT / 2], dtype=np.double)
+    BODY_RADIUS = np.array((Sprite.Player.Body.size[0] * 1.015, Sprite.Player.Body.size[1] * 1.015), dtype=np.double)
+    HAND_RADIUS = np.array((Sprite.Guns.Flintlock.size[0] / 2, Sprite.Guns.Flintlock.size[1] / 2), dtype=np.double)
+    cooldown = 0
+
+    def __init__(self, angle_offset, image):
+        """
+        Initializes a Hand object with the angle offset for the left/right hand.
+
+        Args:
+            angle_offset (int): The angle offset around the player radius from pointing at the mouse. Measured in radians.
+        """
+        self.angle = angle_offset
+        self.prev_angle = self.angle
+        self.angle_offset = angle_offset
+        self.image = pygame.transform.smoothscale(image.image, (image.image.get_width() * render.WIDTH_MULTIPLIER, image.image.get_height() * render.HEIGHT_MULTIPLIER))
+        self.display_image = self.image
+        self.pos = [0, 0]
+        self.pos_offset = [self.display_image.get_width() / 2, self.display_image.get_height() / 2]
+        self.bullets = []
+
+    def fire(self, mousedown):
+        if self.cooldown <= 0 and mousedown:
+            self.bullets.append(Bullet(self.pos, self.angle, 5))
+            self.cooldown = 0
+        else:
+            self.cooldown -= 1
+
+    def update_bullets(self):
+        for bullet in self.bullets:
+            bullet.update()
+
+    def display_bullets(self):
+        for bullet in self.bullets:
+            bullet.display()
+
+    def update(self, mouse_pos, mousedown):
+        """
+        Calculates the hand position using a cython module, then sets its position.
+        
+        Args:
+            mouse_pos (tuple): Current mouse position relative to the screen.
+        """
+        mouse_pos = np.array(mouse_pos, dtype=np.double)
+        pos = calculate_gun_position(self.BODY_RADIUS, self.HAND_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
+        
+        self.angle = calculate_gun_angle(self.BODY_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, mouse_pos)
+
+        if pos:
+            self.pos = pos
+
+        self.fire(mousedown)
+        self.update_bullets()
+
+    def display(self):
+        """Displays the hand on the screen."""
+        if self.angle != self.prev_angle or True:
+            self.prev_angle = self.angle
+            self.display_image = pygame.transform.rotate(self.image, 360 * self.angle)
+            self.pos_offset = [self.display_image.get_width() / 4 * 3, self.display_image.get_height() / 4 * 3]
+        
+        pos = list(self.pos)
+        pos[0] -= self.pos_offset[0] - 2
+        pos[1] -= self.pos_offset[1] - 2
+
+        self.display_bullets()
+        render.blit(self.display_image, render.get_render_pos(pos))
+
+
 class Player:
     game_pos = [0, 0]
     render_pos = render.get_render_pos([GAME_WIDTH/2 - Sprite.Player.Body.frames[0].get_width() / 2 / render.WIDTH_MULTIPLIER, GAME_HEIGHT/2 - Sprite.Player.Body.frames[0].get_height() / 2 / render.HEIGHT_MULTIPLIER])
     base_speed = 6 * settings["SpeedMultiplier"]
     hands = {"left":Hand(-0.5), "right":Hand(0.5)}
+    gun = Gun(0, Sprite.Guns.Flintlock)
     current_frame = 0
     last_frame_time = pygame.time.get_ticks()
 
@@ -509,10 +656,12 @@ class Player:
         # Update the hands's render positions
         cls.hands["left"].update(mouse_pos)
         cls.hands["right"].update(mouse_pos)
+        cls.gun.update(mouse_pos, mouse_down)
 
     @classmethod
     def display(cls):
         """Displays the player and hands on the screen."""
+        cls.gun.display()
         cls.hands["left"].display()
         cls.hands["right"].display()
 
