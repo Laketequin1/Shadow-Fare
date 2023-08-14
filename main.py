@@ -535,15 +535,19 @@ class Bullet:
         self.pos = pos
         self.pos[0] += Player.game_pos[0]
         self.pos[1] += Player.game_pos[1]
-        self.angle = angle
+        self.angle = angle * -1
         self.speed = speed
         self.duration = 0
 
     def update(self):
-        pass
+        # Calculate the horizontal and vertical components of speed
+        horizontal_speed = self.speed * math.cos(self.angle * 2 * math.pi)
+        vertical_speed = self.speed * math.sin(self.angle * 2 * math.pi)
+        
+        self.pos[0] += horizontal_speed
+        self.pos[1] += vertical_speed
 
     def display(self):
-        print(render.get_render_pos((self.pos[0] - Player.game_pos[0] + GAME_WIDTH / 2, self.pos[1] - Player.game_pos[1] + GAME_HEIGHT / 2)))
         render.blit(self.IMAGE, render.get_render_pos((self.pos[0] - Player.game_pos[0], self.pos[1] - Player.game_pos[1])))
 
 
@@ -572,7 +576,7 @@ class Gun:
 
     def fire(self, mousedown):
         if self.cooldown <= 0 and mousedown:
-            self.bullets.append(Bullet([self.pos[0] - 2, self.pos[1]], self.angle, 5))
+            self.bullets.append(Bullet([self.pos[0] - 2, self.pos[1]], self.angle, 8))
             self.cooldown = 0
         else:
             self.cooldown -= 1
