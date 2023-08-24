@@ -7,7 +7,7 @@ settings = {
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
-            "AndroidBuild": False          # [Bool]   (Default: False)  Changes some sections to work for android.
+            "AndroidBuild": True          # [Bool]   (Default: False)  Changes some sections to work for android.
             }
 
 if settings["AndroidBuild"]:
@@ -486,11 +486,15 @@ class Scene:
             finger_positions (tuple): A list of finger positions..
         """
         pressed_buttons = {}
+        remaining_fingers = list(finger_positions)
 
         for button_name, mobile_button in cls.mobile_buttons.items():
-            pressed_buttons[button_name] = mobile_button.update(finger_positions)
+            button_pressed, finger_used = mobile_button.update(finger_positions)
+            pressed_buttons[button_name] = button_pressed
+            if finger_used in remaining_fingers:
+                remaining_fingers.remove(finger_used)
 
-        return pressed_buttons
+        return pressed_buttons, remaining_fingers
 
 
 class Hand:
@@ -735,6 +739,8 @@ class Object:
 
 
 class World(Scene):
+    prev_finger = (GAME_WIDTH, 0)
+
     @classmethod
     def update(cls, mouse_pos, mouse_down, keys_pressed, finger_positions):
         """
@@ -746,7 +752,14 @@ class World(Scene):
         """
         cls.update_buttons(mouse_pos, mouse_down)
         if settings["AndroidBuild"]:
-            movement_arrows = cls.update_mobile_buttons(finger_positions)
+            movement_arrows, remaining_fingers = cls.update_mobile_buttons(finger_positions)
+            if len(remaining_fingers) >= 1:
+                mouse_down = [True, False, False]
+                mouse_pos = remaining_fingers[0]
+                cls.prev_finger = remaining_fingers[0]
+            else:
+                mouse_down = [False, False, False]
+                mouse_pos = cls.prev_finger
         else:
             movement_arrows = {"left": False, "right": False, "up": False, "down": False}
         Player.update(mouse_pos, mouse_down, keys_pressed, movement_arrows)
@@ -843,8 +856,8 @@ class MobileButton(Button):
         # Check if any finger is on the button
         for finger_pos in finger_positions:
             if pygame.Rect(*self.render_pos, *self.button_surface.get_size()).collidepoint(finger_pos):
-                return True
-        return False
+                return True, finger_pos
+        return False, None
 
 
 class MainMenu(Scene):
@@ -899,10 +912,11 @@ World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (350, 180), (60, 
 # Mobile Buttons
 if settings["AndroidBuild"]:
     #pass
-    World.add_mobile_button("up", MobileButton("⇑", (100, GAME_HEIGHT - 500), (450, 150), Color.RED1, Font.arrows))
-    World.add_mobile_button("down", MobileButton("⇓", (100, GAME_HEIGHT - 200), (450, 150), Color.RED1, Font.arrows))
-    World.add_mobile_button("left", MobileButton("⇐", (100, GAME_HEIGHT - 500), (150, 450), Color.RED1, Font.arrows))
-    World.add_mobile_button("right", MobileButton("⇒", (400, GAME_HEIGHT - 500), (150, 450), Color.RED1, Font.arrows))
+    World.add_mobile_button("up", MobileButton("⇑", (50, GAME_HEIGHT - 500), (450, 150), Color.RED1, Font.arrows))
+    World.add_mobile_button("down", MobileButton("⇓", (50, GAME_HEIGHT - 200), (450, 150), Color.RED1, Font.arrows))
+    World.add_mobile_button("left", MobileButton("⇐", (50, GAME_HEIGHT - 500), (150, 450), Color.RED1, Font.arrows))
+    World.add_mobile_button("right", MobileButton("⇒", (350, GAME_HEIGHT - 500), (150, 450), Color.RED1, Font.arrows))
+    World.add_mobile_button("ignore", MobileButton("@", (198, GAME_HEIGHT - 352), (154, 154), Color.RED1, Font.arrows))
 
 running = True
 
@@ -918,7 +932,7 @@ def game_logic():
         keys_pressed = render.get_keys()
 
         if settings["AndroidBuild"]:
-            finger_positions = render.get_fingers()
+            finger_positions = list(render.get_fingers())
         else:
             finger_positions = None
 
