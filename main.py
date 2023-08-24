@@ -287,10 +287,11 @@ class Render:
             else:
                 self.show_debug(False)
 
-        for image in self.queued_images:
+        for image in list(self.queued_images):
             image = list(image)
-            image[1] = (round(image[1][0]), round(image[1][1]))
-            self.screen.blit(*image)
+            if not image[0].get_locked():
+                image[1] = (round(image[1][0]), round(image[1][1]))
+                self.screen.blit(*image)
 
         pygame.display.update()
         self.queued_images = []
@@ -410,7 +411,7 @@ class Sprite:
     class Bullets:
         class Flintlock:
             transparent = True
-            size = (7, 7)
+            size = (10, 10)
             image = load_image("images/bullets/flintlock.png", size, transparent)
     
     class UI:
@@ -531,30 +532,59 @@ class Bullet:
     image_path = bullet_path.image
     IMAGE = pygame.transform.smoothscale(image_path, (bullet_path.size[0] * render.WIDTH_MULTIPLIER, bullet_path.size[1] * render.HEIGHT_MULTIPLIER))
 
-    def __init__(self, pos, angle, speed):
+    def __init__(self, pos, angle, speed, survival_time):
         self.pos = pos
         self.pos[0] += Player.game_pos[0]
         self.pos[1] += Player.game_pos[1]
         self.angle = angle * -1
         self.speed = speed
-        self.duration = 0
+        self.survival_time = survival_time
 
-    def update(self):
+        # Calculate the perpendicular direction
+        perpendicular_angle = self.angle + 0.25
+        perpendicular_speed = -20
+
+        # Calculate the new position
+        self.pos[0] += perpendicular_speed * math.cos(perpendicular_angle * 2 * math.pi) * render.WIDTH_MULTIPLIER
+        self.pos[1] += perpendicular_speed * math.sin(perpendicular_angle * 2 * math.pi) * render.HEIGHT_MULTIPLIER
+
+        # Calculate the perpendicular direction
+        perpendicular_angle = self.angle + 0.5
+        perpendicular_speed = -20
+
+        # Calculate the new position
+        self.pos[0] += perpendicular_speed * math.cos(perpendicular_angle * 2 * math.pi) * render.WIDTH_MULTIPLIER
+        self.pos[1] += perpendicular_speed * math.sin(perpendicular_angle * 2 * math.pi) * render.HEIGHT_MULTIPLIER
+
         # Calculate the horizontal and vertical components of speed
-        horizontal_speed = self.speed * math.cos(self.angle * 2 * math.pi)
-        vertical_speed = self.speed * math.sin(self.angle * 2 * math.pi)
-        
-        self.pos[0] += horizontal_speed
-        self.pos[1] += vertical_speed
+        self.horizontal_speed = self.speed * math.cos(self.angle * 2 * math.pi)
+        self.vertical_speed = self.speed * math.sin(self.angle * 2 * math.pi)
+
+    def update(self):       
+        self.pos[0] += self.horizontal_speed
+        self.pos[1] += self.vertical_speed
+
+        for game_object in World.objects:
+            if pygame.Rect(*game_object.game_pos, game_object.image.get_width() * render.WIDTH_MULTIPLIER * 2, game_object.image.get_height() * render.HEIGHT_MULTIPLIER * 2).collidepoint(self.pos):
+                #Player.gun.bullets.remove(self)
+                World.objects.remove(game_object)
+
+                World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (random.randint(-100, 1500), random.randint(-100, 1500)), (60, 60)))
+                World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (random.randint(-100, 1500), random.randint(-100, 1500)), (60, 60)))
+                return
+
+        self.survival_time -= 1
+        if self.survival_time <= 0:
+            Player.gun.bullets.remove(self)
 
     def display(self):
-        render.blit(self.IMAGE, render.get_render_pos((self.pos[0] - Player.game_pos[0], self.pos[1] - Player.game_pos[1])))
+        render.blit(self.IMAGE, render.get_render_pos((self.pos[0] - Player.game_pos[0] - self.IMAGE.get_width() / 2, self.pos[1] - Player.game_pos[1] - self.IMAGE.get_height() / 2)))
 
 
 class Gun:
     GAME_CENTER_POS = np.array([GAME_WIDTH / 2, GAME_HEIGHT / 2], dtype=np.double)
     RENDER_CENTER_POS = np.array([render.DISPLAY_WIDTH / 2, render.DISPLAY_HEIGHT / 2], dtype=np.double)
-    BODY_RADIUS = np.array((Sprite.Player.Body.size[0] * 1.015, Sprite.Player.Body.size[1] * 1.015), dtype=np.double)
+    BODY_RADIUS = np.array((Sprite.Player.Body.size[0] * 1.25 * render.WIDTH_MULTIPLIER, Sprite.Player.Body.size[1] * 1.25 * render.HEIGHT_MULTIPLIER), dtype=np.double)
     HAND_RADIUS = np.array((Sprite.Guns.Flintlock.size[0] / 2, Sprite.Guns.Flintlock.size[1] / 2), dtype=np.double)
     cooldown = 0
 
@@ -571,13 +601,13 @@ class Gun:
         self.image = pygame.transform.smoothscale(image.image, (image.image.get_width() * render.WIDTH_MULTIPLIER, image.image.get_height() * render.HEIGHT_MULTIPLIER))
         self.display_image = self.image
         self.pos = [0, 0]
-        self.pos_offset = [self.display_image.get_width() / 2, self.display_image.get_height() / 2]
+        self.pos_offset = [self.display_image.get_width() / 2 * render.WIDTH_MULTIPLIER, self.display_image.get_height() / 2 * render.WIDTH_MULTIPLIER]
         self.bullets = []
 
     def fire(self, mousedown):
-        if self.cooldown <= 0 and mousedown:
-            self.bullets.append(Bullet([self.pos[0] - 2, self.pos[1]], self.angle, 8))
-            self.cooldown = 0
+        if self.cooldown <= 0 and mousedown[0]:
+            self.bullets.append(Bullet([self.pos[0] - 2, self.pos[1]], self.angle, 15, 128))
+            self.cooldown = 10
         else:
             self.cooldown -= 1
 
@@ -612,11 +642,11 @@ class Gun:
         if self.angle != self.prev_angle or True:
             self.prev_angle = self.angle
             self.display_image = pygame.transform.rotate(self.image, 360 * self.angle)
-            self.pos_offset = [self.display_image.get_width() / 4 * 3, self.display_image.get_height() / 4 * 3]
+            self.pos_offset = [self.display_image.get_width(), self.display_image.get_height()]
         
         pos = list(self.pos)
-        pos[0] -= self.pos_offset[0] - 2
-        pos[1] -= self.pos_offset[1] - 2
+        pos[0] -= self.pos_offset[0] * render.WIDTH_MULTIPLIER
+        pos[1] -= self.pos_offset[1] * render.HEIGHT_MULTIPLIER
 
         self.display_bullets()
         render.blit(self.display_image, render.get_render_pos(pos))
@@ -701,7 +731,7 @@ class Object:
 
     def display(self):
         """Displays the object on the screen."""
-        render.blit(self.image, render.get_render_pos((self.game_pos[0] - Player.game_pos[0] + GAME_WIDTH / 2, self.game_pos[1] - Player.game_pos[1] + GAME_HEIGHT / 2)))
+        render.blit(self.image, render.get_render_pos((self.game_pos[0] - Player.game_pos[0], self.game_pos[1] - Player.game_pos[1])))
 
 
 class World(Scene):
