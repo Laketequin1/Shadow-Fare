@@ -1,13 +1,13 @@
 # ----- Settings -----
 settings = {
             "ShowDebug":True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
-            "AndroidBuild": True          # [Bool]   (Default: False)  Changes some sections to work for android.
+            "AndroidBuild": False          # [Bool]   (Default: False)  Changes some sections to work for android.
             }
 
 if settings["AndroidBuild"]:
@@ -206,8 +206,6 @@ class Render:
                 self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN | pygame.HWSURFACE | pygame.DOUBLEBUF)
         else:
             self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF)
-        
-        self.screen.set_alpha(None)
 
         pygame.display.set_caption("Shadow Fare")
         self.game_resolution = game_resolution
@@ -216,6 +214,12 @@ class Render:
         self.HEIGHT_MULTIPLIER = self.DISPLAY_HEIGHT/GAME_HEIGHT
 
         self.DEBUG_DOT = self.DEBUG_DOT.convert()
+
+        if os.name != "posix":
+            self.MACHINE = "Windows"
+        else:
+            self.screen.set_alpha(None)
+            self.MACHINE = os.uname().machine
     
     def blit(self, *image):
         """
@@ -264,7 +268,7 @@ class Render:
             self.tps_rect = self.tps_text.get_rect()
             self.tps_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 20 + self.fps_rect.height / render.HEIGHT_MULTIPLIER))
 
-            self.machine_text = Font.debug.render(f"Machine: {os.uname().machine}", True, Color.BLACK, Color.WHITE).convert()
+            self.machine_text = Font.debug.render(f"Machine: {self.MACHINE}", True, Color.BLACK, Color.WHITE).convert()
             self.machine_text = render.scale_image(self.machine_text)
             self.machine_rect = self.machine_text.get_rect()
             self.machine_rect.topright = render.get_render_pos((GAME_WIDTH - 10, 30 + self.machine_rect.height * 2 / render.HEIGHT_MULTIPLIER))
