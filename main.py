@@ -1,7 +1,7 @@
 # ----- Settings -----
 settings = {
             "ShowDebug":True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
@@ -573,11 +573,13 @@ class Bullet:
         self.pos[1] += self.vertical_speed
 
         for game_object in World.objects:
-            if pygame.Rect(*game_object.game_pos, game_object.image.get_width() * render.WIDTH_MULTIPLIER * 2, game_object.image.get_height() * render.HEIGHT_MULTIPLIER * 2).collidepoint(self.pos):
-                #Player.gun.bullets.remove(self)
+            if pygame.Rect(*game_object.game_pos, game_object.image.get_width() / render.WIDTH_MULTIPLIER, game_object.image.get_height() / render.HEIGHT_MULTIPLIER).collidepoint(self.pos):
+                Player.gun.bullets.remove(self)
                 World.objects.remove(game_object)
 
-                World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (random.randint(-100, 1500), random.randint(-100, 1500)), (60, 60)))
+                if len(World.objects) < 500:
+                    World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (random.randint(-100, 1500), random.randint(-100, 1500)), (60, 60)))
+                    World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (random.randint(-100, 1500), random.randint(-100, 1500)), (60, 60)))
                 World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (random.randint(-100, 1500), random.randint(-100, 1500)), (60, 60)))
                 return
 
@@ -592,7 +594,7 @@ class Bullet:
 class Gun:
     GAME_CENTER_POS = np.array([GAME_WIDTH / 2, GAME_HEIGHT / 2], dtype=np.double)
     RENDER_CENTER_POS = np.array([render.DISPLAY_WIDTH / 2, render.DISPLAY_HEIGHT / 2], dtype=np.double)
-    BODY_RADIUS = np.array((Sprite.Player.Body.size[0] * 1.25 * render.WIDTH_MULTIPLIER, Sprite.Player.Body.size[1] * 1.25 * render.HEIGHT_MULTIPLIER), dtype=np.double)
+    GUN_RADIUS = np.array((Sprite.Player.Body.size[0] * 1.25 * render.WIDTH_MULTIPLIER, Sprite.Player.Body.size[1] * 1.25 * render.HEIGHT_MULTIPLIER), dtype=np.double)
     HAND_RADIUS = np.array((Sprite.Guns.Flintlock.size[0] / 2, Sprite.Guns.Flintlock.size[1] / 2), dtype=np.double)
     cooldown = 0
 
@@ -635,9 +637,9 @@ class Gun:
             mouse_pos (tuple): Current mouse position relative to the screen.
         """
         mouse_pos = np.array(mouse_pos, dtype=np.double)
-        pos = calculate_gun_position(self.BODY_RADIUS, self.HAND_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
+        pos = calculate_gun_position(self.GUN_RADIUS, self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
         
-        self.angle = calculate_gun_angle(self.BODY_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, mouse_pos)
+        self.angle = calculate_gun_angle(self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, mouse_pos)
 
         if pos:
             self.pos = pos
@@ -650,11 +652,11 @@ class Gun:
         if self.angle != self.prev_angle or True:
             self.prev_angle = self.angle
             self.display_image = pygame.transform.rotate(self.image, 360 * self.angle)
-            self.pos_offset = [self.display_image.get_width(), self.display_image.get_height()]
+            self.pos_offset = [self.display_image.get_width() * render.WIDTH_MULTIPLIER, self.display_image.get_height() * render.HEIGHT_MULTIPLIER]
         
         pos = list(self.pos)
-        pos[0] -= self.pos_offset[0] * render.WIDTH_MULTIPLIER
-        pos[1] -= self.pos_offset[1] * render.HEIGHT_MULTIPLIER
+        pos[0] -= self.pos_offset[0]
+        pos[1] -= self.pos_offset[1]
 
         self.display_bullets()
         render.blit(self.display_image, render.get_render_pos(pos))
