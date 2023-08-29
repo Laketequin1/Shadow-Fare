@@ -205,7 +205,7 @@ class Render:
                 self.DISPLAY_HEIGHT = self.info.current_h * settings["DisplayHeightMultiplier"]
                 self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.FULLSCREEN | pygame.HWSURFACE | pygame.DOUBLEBUF)
         else:
-            self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF)
+            self.screen = pygame.display.set_mode((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), pygame.NOFRAME)
 
         pygame.display.set_caption("Shadow Fare")
         self.game_resolution = game_resolution
@@ -984,11 +984,21 @@ def render_loop():
         render.update_render_loop_duration(current_time - loop_start_time)
 
 if __name__ == "__main__":
-    game_logic = threading.Thread(target=game_logic)
-    game_logic.start()
+    if os.name == "posix":
+        game_thread = threading.Thread(target=game_loop)
+        game_thread.start()
 
-    render_loop()
+        render_loop()
 
-    game_logic.join()
+        game_thread.join()
 
-    pygame.quit()
+        pygame.quit()
+    else:
+        render_thread = threading.Thread(target=render_loop)
+        render_thread.start()
+
+        game_logic()
+
+        render_thread.join()
+
+        pygame.quit()
