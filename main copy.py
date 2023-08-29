@@ -1,9 +1,9 @@
 # ----- Settings -----
 settings = {
             "ShowDebug":True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
-            "DisplayWidthMultiplier": 0.5,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
+            "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
@@ -123,8 +123,8 @@ def calculate_hand_position(BODY_RADIUS, HAND_RADIUS, angle_offset, render_cente
 
 def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_pos, game_center_pos, mouse_pos):
     # Calculate the distance between the mouse position and the render center position
-    distance_x = mouse_pos[0] - render_center_pos[0] + 0.1
-    distance_y = mouse_pos[1] - render_center_pos[1] + 0.1
+    distance_x = mouse_pos[0] - render_center_pos[0] + 0.01
+    distance_y = mouse_pos[1] - render_center_pos[1] + 0.01
 
     # Calculate the distance to the mouse position using the oval equation
     distance_to_mouse = math.sqrt(distance_x * distance_x / (BODY_RADIUS[0] * BODY_RADIUS[0]) + distance_y * distance_y / (BODY_RADIUS[1] * BODY_RADIUS[1]))
@@ -141,8 +141,8 @@ def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_
     sin_angle = math.sin(angle)
 
     # Calculate the position of the hand based on the game center position, body radius, hand radius, and angle
-    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle - GUN_RADIUS[0]
-    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle - GUN_RADIUS[1]
+    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle
+    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle
     
     # Return the calculated hand position
     return [hand_pos_x, hand_pos_y]
@@ -608,7 +608,7 @@ class Gun:
         self.angle = angle_offset
         self.prev_angle = self.angle
         self.angle_offset = angle_offset
-        self.image = pygame.transform.smoothscale(image.image, (image.image.get_width(), image.image.get_height()))
+        self.image = pygame.transform.smoothscale(image.image, (image.image.get_width() * render.WIDTH_MULTIPLIER, image.image.get_height() * render.HEIGHT_MULTIPLIER))
         self.display_image = self.image
         self.pos = [0, 0]
         self.pos_offset = [self.display_image.get_width() / 2 * render.WIDTH_MULTIPLIER, self.display_image.get_height() / 2 * render.WIDTH_MULTIPLIER]
@@ -657,6 +657,7 @@ class Gun:
         pos = list(self.pos)
         pos[0] -= self.pos_offset[0]
         pos[1] -= self.pos_offset[1]
+
         self.display_bullets()
         render.blit(self.display_image, render.get_render_pos(pos))
 
