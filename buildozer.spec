@@ -7,7 +7,7 @@ title = Shadow Fare
 package.name = shadowfare
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = dev.tequin
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -29,7 +29,7 @@ source.exclude_dirs = testing
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 0.12
+version = 1.0
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]
