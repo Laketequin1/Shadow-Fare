@@ -1,9 +1,9 @@
 # ----- Settings -----
 settings = {
             "ShowDebug":True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
-            "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
+            "DisplayWidthMultiplier": 0.5,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.

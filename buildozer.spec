@@ -7,7 +7,7 @@ title = Shadow Fare
 package.name = shadowfare
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = dev.tequin
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -29,7 +29,7 @@ source.exclude_dirs = testing
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 0.12
+version = 1.0
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]
@@ -47,7 +47,7 @@ requirements = python3,kivy,pygame,numpy
 presplash.filename = %(source.dir)s/images/UI/menu/Background.png
 
 # (str) Icon of the application
-icon.filename = %(source.dir)s/images/player/body/f0.png
+icon.filename = %(source.dir)s/images/guns/flintlock.png
 
 # (list) Supported orientations
 # Valid options are: landscape, portrait, portrait-reverse or landscape-reverse
