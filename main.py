@@ -985,7 +985,7 @@ def render_loop():
 
 if __name__ == "__main__":
     if os.name == "posix":
-        game_thread = threading.Thread(target=game_loop)
+        game_thread = threading.Thread(target=game_logic)
         game_thread.start()
 
         render_loop()
