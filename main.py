@@ -1,6 +1,6 @@
 # ----- Settings -----
 settings = {
-            "ShowDebug":True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
+            "ShowDebug": True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
             "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 0.5,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
@@ -635,7 +635,7 @@ class Bullet:
         self.pos[1] += self.vertical_speed
 
         for game_object in World.objects:
-            if pygame.Rect(*game_object.game_pos, game_object.image.get_width() * render.WIDTH_MULTIPLIER, game_object.image.get_height() * render.HEIGHT_MULTIPLIER).collidepoint(self.pos):
+            if pygame.Rect(*game_object.game_pos, game_object.image.get_width() / render.WIDTH_MULTIPLIER, game_object.image.get_height() / render.HEIGHT_MULTIPLIER).collidepoint(self.pos):
                 Player.gun.bullets.remove(self)
                 World.objects.remove(game_object)
 
@@ -659,8 +659,8 @@ class Bullet:
 class Gun:
     GAME_CENTER_POS = np.array([GAME_WIDTH / 2, GAME_HEIGHT / 2], dtype=np.double)
     RENDER_CENTER_POS = np.array([render.DISPLAY_WIDTH / 2, render.DISPLAY_HEIGHT / 2], dtype=np.double)
-    BODY_RADIUS = np.array((Sprite.Player.Body.size[0] * 1.1 * render.WIDTH_MULTIPLIER, Sprite.Player.Body.size[1] * 1.1 * render.HEIGHT_MULTIPLIER), dtype=np.double)
-    GUN_RADIUS = np.array((Sprite.Guns.Flintlock.size[0] / 2, Sprite.Guns.Flintlock.size[1] / 2), dtype=np.double)
+    GUN_RADIUS = np.array((Sprite.Player.Body.size[0] * 1.25 * render.WIDTH_MULTIPLIER, Sprite.Player.Body.size[1] * 1.25 * render.HEIGHT_MULTIPLIER), dtype=np.double)
+    HAND_RADIUS = np.array((Sprite.Guns.Flintlock.size[0] / 2, Sprite.Guns.Flintlock.size[1] / 2), dtype=np.double)
     cooldown = 0
 
     def __init__(self, angle_offset, image):
@@ -718,9 +718,9 @@ class Gun:
             mousedown (tuple): A tuple representing mouse click states (left_click, middle_click, right_click).
         """
         mouse_pos = np.array(mouse_pos, dtype=np.double)
-        pos = calculate_gun_position(self.BODY_RADIUS, self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
+        pos = calculate_gun_position(self.GUN_RADIUS, self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
         
-        self.angle = calculate_gun_angle(self.BODY_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, mouse_pos)
+        self.angle = calculate_gun_angle(self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, mouse_pos)
 
         if pos:
             self.pos = pos
@@ -735,11 +735,12 @@ class Gun:
         if self.angle != self.prev_angle or True:
             self.prev_angle = self.angle
             self.display_image = pygame.transform.rotate(self.image, 360 * self.angle)
-            self.pos_offset = [self.display_image.get_width() / 2, self.display_image.get_height() / 2]
+            self.pos_offset = [self.display_image.get_width() * render.WIDTH_MULTIPLIER, self.display_image.get_height() * render.HEIGHT_MULTIPLIER]
         
         pos = list(self.pos)
         pos[0] -= self.pos_offset[0]
         pos[1] -= self.pos_offset[1]
+
         self.display_bullets()
         render.blit(self.display_image, render.get_render_pos(pos))
 
