@@ -96,6 +96,20 @@ def load_images(paths, size = None, transparent = False):
     return [load_image(path, size, transparent) for path in paths]
 
 def calculate_hand_position(BODY_RADIUS, HAND_RADIUS, angle_offset, render_center_pos, game_center_pos, mouse_pos):
+    """
+    Calculates a hand position of the player.
+
+    Args:
+        BODY_RADIUS (tuple): Tuple containing the radii of the body ellipse.
+        HAND_RADIUS (tuple): Tuple containing the radii of the hand ellipse.
+        angle_offset (float): Offset angle for positioning.
+        render_center_pos (tuple): Tuple containing the center position for rendering.
+        game_center_pos (tuple): Tuple containing the center position of the game.
+        mouse_pos (tuple): Tuple containing the mouse position.
+
+    Returns:
+        tuple: The calculated hand position as a tuple (hand_pos_x, hand_pos_y).
+    """
     # Calculate the distance between the mouse position and the render center position
     distance_x = mouse_pos[0] - render_center_pos[0] + 0.1
     distance_y = mouse_pos[1] - render_center_pos[1] + 0.1
@@ -122,6 +136,20 @@ def calculate_hand_position(BODY_RADIUS, HAND_RADIUS, angle_offset, render_cente
     return (hand_pos_x, hand_pos_y)
 
 def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_pos, game_center_pos, mouse_pos):
+    """
+    Calculates the position of the gun.
+
+    Args:
+        BODY_RADIUS (tuple): Tuple containing the radii of the body ellipse.
+        GUN_RADIUS (tuple): Tuple containing the radii of the gun ellipse.
+        angle_offset (float): Offset angle for positioning.
+        render_center_pos (tuple): Tuple containing the center position for rendering.
+        game_center_pos (tuple): Tuple containing the center position of the game.
+        mouse_pos (tuple): Tuple containing the mouse position.
+
+    Returns:
+        list: A list containing the calculated gun position [gun_pos_x, gun_pos_y].
+    """
     # Calculate the distance between the mouse position and the render center position
     distance_x = mouse_pos[0] - render_center_pos[0] + 0.1
     distance_y = mouse_pos[1] - render_center_pos[1] + 0.1
@@ -148,6 +176,18 @@ def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_
     return [hand_pos_x, hand_pos_y]
 
 def calculate_gun_angle(BODY_RADIUS, angle_offset, render_center_pos, mouse_pos):
+    """
+    Calculates the angle of a gun relative to the player, in the direction of the mouse.
+
+    Args:
+        BODY_RADIUS (tuple): Tuple containing the radii of the body ellipse.
+        angle_offset (float): Offset angle for positioning.
+        render_center_pos (tuple): Tuple containing the center position for rendering.
+        mouse_pos (tuple): Tuple containing the mouse position.
+
+    Returns:
+        float: The normalized gun angle within the range [0, 1].
+    """
     # Calculate the distance between the mouse position and the render center position
     distance_x = mouse_pos[0] - render_center_pos[0] + 0.1
     distance_y = mouse_pos[1] - render_center_pos[1] + 0.1
@@ -311,7 +351,7 @@ class Render:
     
     def get_fingers(self):
         """
-        Gets the finger positions.
+        Gets the finger positions on the screen (for mobile).
 
         Returns:
             tuple: A tuple containing the finger positions.
@@ -336,7 +376,7 @@ class Render:
     
     def get_game_pos(self, pos):
         """
-        Converts a screen position to a game position.
+        Converts a render position to a game position.
 
         Args:
             pos (tuple): The screen position.
@@ -352,7 +392,7 @@ class Render:
     
     def get_render_pos(self, pos):
         """
-        Converts a game position to a screen position.
+        Converts a game position to a render position.
 
         Args:
             pos (tuple): The game position.
@@ -393,7 +433,7 @@ class Render:
 
 render = Render((GAME_WIDTH, GAME_WIDTH))
 
-class Sprite:    
+class Sprite:
     class Player:
         class Body:
             size = (80, 80)
@@ -472,7 +512,7 @@ class Scene:
     @classmethod
     def update_buttons(cls, mouse_pos, mouse_down):
         """
-        Updates the Buttons.
+        Updates the Buttons (excluding MobileButtons).
 
         Args:
             mouse_pos (tuple): Current mouse position.
@@ -484,10 +524,16 @@ class Scene:
     @classmethod
     def update_mobile_buttons(cls, finger_positions):
         """
-        Updates the mobile Buttons, and returns a dict of pressed buttons.
+        Updates the MobileButtons (excluding Buttons) and returns a dictionary of pressed buttons and a list of remaining fingers.
 
         Args:
-            finger_positions (tuple): A list of finger positions..
+            finger_positions (tuple): A list of finger positions.
+
+        Returns:
+            dict: A dictionary containing the state of pressed buttons and remaining fingers.
+                - Keys (str): Names of the buttons.
+                - Values (bool): True if the button is pressed, False otherwise.
+            list: A list of remaining fingers.
         """
         pressed_buttons = {}
         remaining_fingers = list(finger_positions)
@@ -519,7 +565,7 @@ class Hand:
 
     def update(self, mouse_pos):
         """
-        Calculates the hand position using a cython module, then sets its position.
+        Calculates the hand position, then sets its position.
         
         Args:
             mouse_pos (tuple): Current mouse position relative to the screen.
@@ -531,7 +577,9 @@ class Hand:
             self.pos = pos
 
     def display(self):
-        """Displays the hand on the screen."""
+        """
+        Displays the hand on the screen.
+        """
         render.blit(Sprite.Player.Hand.image, render.get_render_pos(self.pos))
 
 
@@ -541,6 +589,15 @@ class Bullet:
     IMAGE = pygame.transform.smoothscale(image_path, (bullet_path.size[0] * render.WIDTH_MULTIPLIER, bullet_path.size[1] * render.HEIGHT_MULTIPLIER))
 
     def __init__(self, pos, angle, speed, survival_time):
+        """
+        Initializes a Bullet object with position, angle, speed, and survival time.
+
+        Args:
+            pos (tuple): A tuple containing the initial position (x, y).
+            angle (float): The angle of movement in radians.
+            speed (float): The speed of movement.
+            survival_time (float): The time the object is expected to survive.
+        """
         self.pos = pos
         self.pos[0] += Player.game_pos[0]
         self.pos[1] += Player.game_pos[1]
@@ -568,7 +625,12 @@ class Bullet:
         self.horizontal_speed = self.speed * math.cos(self.angle * 2 * math.pi)
         self.vertical_speed = self.speed * math.sin(self.angle * 2 * math.pi)
 
-    def update(self):       
+    def update(self):
+        """
+        Updates the state of the Bullet object.
+
+        Moves the bullet based on its horizontal and vertical speed. Checks for collisions with game objects in the World, removes the bullet and the collided object upon collision, and adds new tree objects if the object count is below 500. Decreases the bullet's survival time, and removes it if the survival time reaches zero.
+        """
         self.pos[0] += self.horizontal_speed
         self.pos[1] += self.vertical_speed
 
@@ -588,6 +650,9 @@ class Bullet:
             Player.gun.bullets.remove(self)
 
     def display(self):
+        """
+        Displays the bullet on the screen.
+        """
         render.blit(self.IMAGE, render.get_render_pos((self.pos[0] - Player.game_pos[0] - self.IMAGE.get_width() / 2, self.pos[1] - Player.game_pos[1] - self.IMAGE.get_height() / 2)))
 
 
@@ -600,10 +665,11 @@ class Gun:
 
     def __init__(self, angle_offset, image):
         """
-        Initializes a Hand object with the angle offset for the left/right hand.
+        Initializes a Gun object with an angle offset.
 
         Args:
             angle_offset (int): The angle offset around the player radius from pointing at the mouse. Measured in radians.
+            image (pygame.Surface): The image to represent the gun.
         """
         self.angle = angle_offset
         self.prev_angle = self.angle
@@ -615,6 +681,12 @@ class Gun:
         self.bullets = []
 
     def fire(self, mousedown):
+        """
+        Fires a bullet if the cooldown is over and the mouse button is held down.
+
+        Args:
+            mousedown (tuple): A tuple representing mouse click states (left_click, middle_click, right_click).
+        """
         if self.cooldown <= 0 and mousedown[0]:
             self.bullets.append(Bullet([self.pos[0] - 2, self.pos[1]], self.angle, 15, 128))
             self.cooldown = 10
@@ -622,19 +694,28 @@ class Gun:
             self.cooldown -= 1
 
     def update_bullets(self):
+        """
+        Updates all bullets.
+        """
         for bullet in self.bullets:
             bullet.update()
 
     def display_bullets(self):
+        """
+        Displays all bullets on the screen.
+        """
         for bullet in self.bullets:
             bullet.display()
 
     def update(self, mouse_pos, mousedown):
         """
-        Calculates the hand position using a cython module, then sets its position.
-        
+        Handles gun position, firing, and bullets for the Gun object.
+
+        Calculates the gun position around the player, the angle at which the gun is pointing, and updates its position accordingly. Checks if gun should fire, and update existing bullets.
+
         Args:
             mouse_pos (tuple): Current mouse position relative to the screen.
+            mousedown (tuple): A tuple representing mouse click states (left_click, middle_click, right_click).
         """
         mouse_pos = np.array(mouse_pos, dtype=np.double)
         pos = calculate_gun_position(self.BODY_RADIUS, self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
@@ -648,7 +729,9 @@ class Gun:
         self.update_bullets()
 
     def display(self):
-        """Displays the hand on the screen."""
+        """
+        Displays the gun and bullets on the screen.
+        """
         if self.angle != self.prev_angle or True:
             self.prev_angle = self.angle
             self.display_image = pygame.transform.rotate(self.image, 360 * self.angle)
@@ -673,7 +756,9 @@ class Player:
     @classmethod
     def update(cls, mouse_pos, mouse_down, keys_pressed: pygame.key.ScancodeWrapper, movement_arrows):
         """
-        Updates the player and handles movement.
+        Updates the player's state and handles movement.
+
+        Calculates the player's movement vector based on keyboard input and arrow keys. Normalizes the movement vector if it's diagonal. Updates the player's position accordingly. Also updates the render positions of the player's hands and the gun.
 
         Args:
             mouse_pos (tuple): Current mouse position relative to the screen.
