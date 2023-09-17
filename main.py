@@ -7,7 +7,7 @@ settings = {
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
-            "AndroidBuild": False          # [Bool]   (Default: False)  Changes some sections to work for android.
+            "AndroidBuild": False         # [Bool]   (Default: False)  Changes some sections to work for android.
             }
 
 if settings["AndroidBuild"]:
@@ -29,15 +29,16 @@ if os.name == "posix":
 else:
     os.system("cls")
 
+
 # ----- Constant Variables -----
-# Ticks per second
+# Ticks Per Second
 TPS = settings["TPS"]
-# Seconds per tick
+# Seconds Per Tick
 SPT = 1/TPS
 
-#Frames per second
+#Frames Per Second
 FPS = settings["FPS"]
-# Seconds per tick
+# Seconds Per Tick
 SPF = 1/FPS
 
 GAME_WIDTH = 1920
@@ -48,25 +49,25 @@ class Font:
     symbol = pygame.font.SysFont(None, 80)
     debug = pygame.font.Font(os.path.abspath("fonts/RobotoMono.ttf"), 50)
     arrows = pygame.font.Font(os.path.abspath("fonts/seguisym.ttf"), 100)
-        
-        
-# ----- Variables -----
 
 
 # ----- Functions ------
 def exit():
-    """Exits the server and game."""
+    """
+    Sets running to false to close both thread loops, ends the thread.
+    """
     global running
     running = False
     sys.exit()
 
 def load_image(path, size = None, transparent = False):
-    """Returns the loaded image.
+    """
+    Returns the loaded image.
 
     Args:
         paths (str): path to a single image.
-        size (array): Size to set the image.
-        transparent (bool): Makes image alpha if set to True.
+        size (array or None): Size to set the image, if None then will use source resolution. Defaults to None.
+        transparent (bool): Makes image alpha if set to True. Defaults to False.
         
     Returns:
         pygame.Surface: A pygame surface of the image.
@@ -87,8 +88,8 @@ def load_images(paths, size = None, transparent = False):
 
     Args:
         paths (list): List of paths to sprite frames.
-        size (array): Size to set the image frames.
-        transparent (bool): Makes image frames alpha if set to True.
+        size (array): Size to set the image frames, if None then will use source resolutions. Defaults to None.
+        transparent (bool): Makes image frames alpha if set to True. Defaults to False.
         
     Returns:
         list: A list of loaded images.
@@ -132,7 +133,6 @@ def calculate_hand_position(BODY_RADIUS, HAND_RADIUS, angle_offset, render_cente
     hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle - HAND_RADIUS[0]
     hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle - HAND_RADIUS[1]
     
-    # Return the calculated hand position
     return (hand_pos_x, hand_pos_y)
 
 def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_pos, game_center_pos, mouse_pos):
@@ -172,7 +172,6 @@ def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_
     hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle
     hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle
     
-    # Return the calculated hand position
     return [hand_pos_x, hand_pos_y]
 
 def calculate_gun_angle(BODY_RADIUS, angle_offset, render_center_pos, mouse_pos):
@@ -205,8 +204,8 @@ def calculate_gun_angle(BODY_RADIUS, angle_offset, render_center_pos, mouse_pos)
     # Normalize the angle to the range [0, 1]
     normalized_angle = angle / (2 * math.pi)
     
-    # Return the calculated normalized angle
     return normalized_angle - 0.25
+
 
 # ----- Class -----
 class Render:
@@ -216,7 +215,6 @@ class Render:
     
     BACKGROUND_COLOR = Color.BLACK
 
-    # Debugging
     DEBUG_DOT = pygame.Surface((6, 6))
     DEBUG_DOT.fill(Color.RED1)
     previous_show_debug_time = -1
@@ -765,6 +763,7 @@ class Player:
             mouse_pos (tuple): Current mouse position relative to the screen.
             mouse_down (tuple): Current mouse button states.
             keys_pressed (pygame.key.ScancodeWrapper): Current keyboard button states.
+            movement_arrows (dict): A dictionary containing arrow key states ("up", "down", "left", "right") as a bool.
         """
         # Calculate the player's movement vector
         move_vector = [0, 0]
@@ -780,18 +779,18 @@ class Player:
         # Normalize the movement vector if it is diagonal
         if move_vector[0] != 0 and move_vector[1] != 0:
             move_vector = [x / math.sqrt(2) for x in move_vector]
-
-        # Update the player's position
+        
         cls.game_pos = (cls.game_pos[0] + move_vector[0], cls.game_pos[1] + move_vector[1])
 
-        # Update the hands's render positions
         cls.hands["left"].update(mouse_pos)
         cls.hands["right"].update(mouse_pos)
         cls.gun.update(mouse_pos, mouse_down)
 
     @classmethod
     def display(cls):
-        """Displays the player and hands on the screen."""
+        """
+        Displays the player and hands on the screen.
+        """
         cls.gun.display()
         cls.hands["left"].display()
         cls.hands["right"].display()
@@ -809,8 +808,10 @@ class Object:
         Initializes an Object with its game position and image.
 
         Args:
+            self: The instance of the Object being initialized.
             game_pos (tuple): The game position of the object.
             image (pygame.Surface): The image of the object.
+            size (tuple, optional): The size of the image after scaling (width, height). Defaults to None.
         """
         if size:
             self.image = pygame.transform.smoothscale(image, (size[0] * render.WIDTH_MULTIPLIER, size[1] * render.HEIGHT_MULTIPLIER))
@@ -820,12 +821,14 @@ class Object:
 
     def update(self):
         """
-        Updates and displays the object.
+        Updates and displays the Object.
         """
         self.display()
 
     def display(self):
-        """Displays the object on the screen."""
+        """
+        Displays the Object on the screen.
+        """
         render.blit(self.image, render.get_render_pos((self.game_pos[0] - Player.game_pos[0], self.game_pos[1] - Player.game_pos[1])))
 
 
@@ -835,11 +838,13 @@ class World(Scene):
     @classmethod
     def update(cls, mouse_pos, mouse_down, keys_pressed, finger_positions):
         """
-        A class method that updates all events in the World and then displays them.
+        A class method that updates all events in the World and displays them.
 
         Args:
             mouse_pos (tuple): Current position of the mouse relative to the screen.
             mouse_down (tuple): Current state of the mouse buttons.
+            keys_pressed (pygame.key.ScancodeWrapper): Current keyboard button states.
+            finger_positions (list): List of finger positions on a touchscreen (only used if 'AndroidBuild' is True).
         """
         cls.update_buttons(mouse_pos, mouse_down)
         if settings["AndroidBuild"]:
@@ -858,7 +863,7 @@ class World(Scene):
     @classmethod
     def display(cls):
         """
-        A class method that displays everything in tbe World.
+        A class method that displays everything in the World.
         """
         cls.display_objects()
         Player.display()
@@ -886,7 +891,8 @@ class World(Scene):
 
 class Button:
     def __init__(self, text, pos, size, color, font, callback):
-        """Initialize the button.
+        """
+        Initialize the button.
 
         Args:
             text (str): Text to display on the button.
@@ -911,7 +917,6 @@ class Button:
         else:
             border_radius = 0
         
-        # Draw rounded rectangle
         pygame.draw.rect(self.button_surface, self.color, (0, 0, self.size[0], self.size[1]), border_radius=border_radius)
         
         text = font.render(self.text, True, Color.WHITE)
@@ -924,27 +929,50 @@ class Button:
 
     def update(self, mouse_pos, mouse_down):
         """
-        Updates the button state based on the mouse input.
+        Runs the buttons callback function if the mouse is down and the mouse is in the button area.
 
         Args:
             mouse_pos (tuple): Current mouse position.
             mouse_down (tuple): Current mouse button states.
         """
-        # Check if the mouse is hovering over the button and the left mouse button is down
         if pygame.Rect(*self.render_pos, *self.button_surface.get_size()).collidepoint(mouse_pos) and mouse_down[0]:
             self.callback()
 
     def display(self):
-        """Displays the button on the screen."""
+        """
+        Displays the button on the screen.
+        """
         render.blit(self.button_surface, self.render_pos)
 
 
 class MobileButton(Button):
     def __init__(self, text, pos, size, color, font):
+        """
+        Initialize the MobileButton, inheriting from the Button class.
+
+        Args:
+            text (str): Text to display on the button.
+            pos (tuple): Position of the button.
+            size (tuple): Size of the button.
+            color (tuple): Color of the button.
+            font (pygame.font.Font): Used font of the button.
+        """
         super().__init__(text, pos, size, color, font, None)
 
     def update(self, finger_positions):
-        # Check if any finger is on the button
+        """
+        Updates the state of the MobileButton based on finger positions.
+
+        Checks if any finger is on the button by comparing finger positions with the button's position and size. Returns True and the position of the finger if a finger is on the button (used as identifier), otherwise returns False and None (no identifier).
+
+        Args:
+            finger_positions (list): List of finger positions on a touchscreen.
+
+        Returns:
+            tuple: A tuple containing:
+                - bool: True if a finger is on the button, False otherwise.
+                - tuple or None: The position of the finger on the button if detected, or None if no finger is on the button.
+        """
         for finger_pos in finger_positions:
             if pygame.Rect(*self.render_pos, *self.button_surface.get_size()).collidepoint(finger_pos):
                 return True, finger_pos
@@ -957,22 +985,29 @@ class MainMenu(Scene):
     
     @classmethod
     def toggle(cls):
-        """Toggles the enabled status of the MainMenu."""
+        """
+        Toggles the enabled status of the MainMenu.
+        """
         cls.enabled = not cls.enabled
     
     @classmethod
     def enable(cls):
-        """Enables the MainMenu."""
+        """
+        Enables the MainMenu.
+        """
         cls.enabled = True
     
     @classmethod
     def disable(cls):
-        """Disables the MainMenu."""
+        """
+        Disables the MainMenu.
+        """
         cls.enabled = False
     
     @classmethod
     def update(cls, mouse_pos, mouse_down):
-        """Updates the MainMenu.
+        """
+        Updates the MainMenu buttons.
 
         Args:
             mouse_pos (tuple): Current mouse position.
@@ -982,7 +1017,9 @@ class MainMenu(Scene):
         
     @classmethod
     def display(cls):
-        """Displays the MainMenu."""
+        """
+        Displays the MainMenu.
+        """
         render.blit(Sprite.UI.Menu.Background.image, (0, 0))
         
         for button in cls.buttons:
@@ -1002,7 +1039,6 @@ World.add_object(Object(Sprite.Scenery.Foilage.Tree.frames[0], (350, 180), (60, 
 
 # Mobile Buttons
 if settings["AndroidBuild"]:
-    #pass
     World.add_mobile_button("up", MobileButton("⇑", (50, GAME_HEIGHT - 500), (450, 150), Color.RED1, Font.arrows))
     World.add_mobile_button("down", MobileButton("⇓", (50, GAME_HEIGHT - 200), (450, 150), Color.RED1, Font.arrows))
     World.add_mobile_button("left", MobileButton("⇐", (50, GAME_HEIGHT - 500), (150, 450), Color.RED1, Font.arrows))
@@ -1070,6 +1106,7 @@ def render_loop():
         
         render.update_render_loop_duration(current_time - loop_start_time)
 
+# Entry point. Runs the game logic and rendering loop in separate threads based on the OS type (posix or windows)
 if __name__ == "__main__":
     if os.name == "posix":
         game_thread = threading.Thread(target=game_logic)
