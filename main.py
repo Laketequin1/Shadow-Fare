@@ -3,7 +3,7 @@ settings = {
             "ShowDebug": True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
             "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
-            "DisplayWidthMultiplier": 0.5,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
+            "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
             "FPS": 400,                   # [Int]    (Default: 120)    Limit rendering frames per second.
             "SpeedMultiplier": 1,         # [Float]  (Default: 1)      Scales the player speed, making it faster or slower.
@@ -151,8 +151,8 @@ def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_
         list: A list containing the calculated gun position [gun_pos_x, gun_pos_y].
     """
     # Calculate the distance between the mouse position and the render center position
-    distance_x = mouse_pos[0] - render_center_pos[0] + 0.1
-    distance_y = mouse_pos[1] - render_center_pos[1] + 0.1
+    distance_x = mouse_pos[0] - render_center_pos[0] + 0.01
+    distance_y = mouse_pos[1] - render_center_pos[1] + 0.01
 
     # Calculate the distance to the mouse position using the oval equation
     distance_to_mouse = math.sqrt(distance_x * distance_x / (BODY_RADIUS[0] * BODY_RADIUS[0]) + distance_y * distance_y / (BODY_RADIUS[1] * BODY_RADIUS[1]))
@@ -169,8 +169,8 @@ def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_
     sin_angle = math.sin(angle)
 
     # Calculate the position of the hand based on the game center position, body radius, hand radius, and angle
-    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle - GUN_RADIUS[0]
-    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle - GUN_RADIUS[1]
+    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle
+    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle
     
     # Return the calculated hand position
     return [hand_pos_x, hand_pos_y]
