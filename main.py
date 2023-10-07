@@ -1,7 +1,7 @@
 # ----- Settings -----
 settings = {
             "ShowDebug": True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
@@ -169,8 +169,8 @@ def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_
     sin_angle = math.sin(angle)
 
     # Calculate the position of the hand based on the game center position, body radius, hand radius, and angle
-    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle
-    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle
+    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle / render.WIDTH_MULTIPLIER ** 1.4
+    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle / render.HEIGHT_MULTIPLIER ** 1.4
     
     return [hand_pos_x, hand_pos_y]
 
@@ -733,8 +733,8 @@ class Gun:
         if self.angle != self.prev_angle or True:
             self.prev_angle = self.angle
             self.display_image = pygame.transform.rotate(self.image, 360 * self.angle)
-            self.pos_offset = [self.display_image.get_width() * render.WIDTH_MULTIPLIER, self.display_image.get_height() * render.HEIGHT_MULTIPLIER]
-        
+            self.pos_offset = [self.display_image.get_width() / 2 / render.WIDTH_MULTIPLIER, self.display_image.get_height() / 2 / render.HEIGHT_MULTIPLIER]
+
         pos = list(self.pos)
         pos[0] -= self.pos_offset[0]
         pos[1] -= self.pos_offset[1]
