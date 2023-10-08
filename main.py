@@ -1,7 +1,7 @@
 # ----- Settings -----
 settings = {
             "ShowDebug": True,            # [Bool]   (Default: False)  Shows debug and stat information like FPS.
-            "NoFullscreen": False,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
+            "NoFullscreen": True,         # [Bool]   (Default: False)  Disables fullscreen mode on Linux.
             "DisplayHeightMultiplier": 1, # [Float]  (Default: 1)      Scales the screen height, making it taller or shorter. It is suggested to enable NoFullscreen if using Linux.
             "DisplayWidthMultiplier": 1,  # [Float]  (Default: 1)      Scales the screen width, making it wider or thinner. It is suggested to enable NoFullscreen if using Linux.
             "TPS": 64,                    # [Int]    (Default: 64)     Modify the game ticks per second, making everythng update faster or slower. Intended for 64 tps.
@@ -169,8 +169,8 @@ def calculate_gun_position(BODY_RADIUS, GUN_RADIUS, angle_offset, render_center_
     sin_angle = math.sin(angle)
 
     # Calculate the position of the hand based on the game center position, body radius, hand radius, and angle
-    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle / render.WIDTH_MULTIPLIER ** 1.4
-    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle / render.HEIGHT_MULTIPLIER ** 1.4
+    hand_pos_x = game_center_pos[0] + BODY_RADIUS[0] * cos_angle / render.WIDTH_MULTIPLIER
+    hand_pos_y = game_center_pos[1] + BODY_RADIUS[1] * sin_angle / render.HEIGHT_MULTIPLIER
     
     return [hand_pos_x, hand_pos_y]
 
@@ -716,7 +716,7 @@ class Gun:
             mousedown (tuple): A tuple representing mouse click states (left_click, middle_click, right_click).
         """
         mouse_pos = np.array(mouse_pos, dtype=np.double)
-        pos = calculate_gun_position(self.GUN_RADIUS, self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
+        pos = calculate_gun_position(self.GUN_RADIUS - 18 * render.WIDTH_MULTIPLIER, self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, self.GAME_CENTER_POS, mouse_pos)
         
         self.angle = calculate_gun_angle(self.GUN_RADIUS, self.angle_offset, self.RENDER_CENTER_POS, mouse_pos)
 
