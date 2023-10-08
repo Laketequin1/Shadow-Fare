@@ -213,7 +213,7 @@ class Render:
     DISPLAY_WIDTH = info.current_w * settings["DisplayWidthMultiplier"]
     DISPLAY_HEIGHT = info.current_h * settings["DisplayHeightMultiplier"]
     
-    BACKGROUND_COLOR = Color.BLACK
+    BACKGROUND_COLOR = Color.SEAGREEN4
 
     DEBUG_DOT = pygame.Surface((6, 6))
     DEBUG_DOT.fill(Color.RED1)
